@@ -1,0 +1,7 @@
+language: python
+python:
+  - "3.6"
+script:
+  - "pylint slack_ldap_bridge"
+notifications:
+  email: false
