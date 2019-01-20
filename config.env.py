@@ -24,3 +24,8 @@ REDIRECT_URI = os.environ.get('SLACK_REDIRECT', 'http://localhost/slack:5000')
 
 RETURN_URI = os.environ.get('RETURN_URI', 'https://members.csh.rit.edu')
 
+# GitHub secrets
+LINK_STATE = os.environ.get('LINK_STATE', 'link')
+REVOKE_STATE = os.environ.get('REVOKE_STATE', 'revoke')
+GITHUB_CLIENT_ID = os.environ.get('GITHUB_ID', '')
+GITHUB_SECRET = os.environ.get('GITHUB_SECRET', '')
