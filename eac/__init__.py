@@ -27,9 +27,10 @@ _ACCESS_URI = 'https://slack.com/api/oauth.access' \
        + '?redirect_uri=%s&client_id=%s&client_secret=%s&code=%s'
 
 
-@APP.route('/')
+@APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth
-def _handle():
+def _link_slack():
+    """ Links Slack into LDAP via slackUID """
     resp = requests.get(_ACCESS_URI %
                         (APP.config['REDIRECT_URI'], APP.config['SLACK_CLIENT_ID'],
                          APP.config['SLACK_SECRET'], request.args.get('code')))
@@ -38,3 +39,12 @@ def _handle():
     print(resp.json()) # DEBUG
     member.slackUID = resp.json()['user']['id']
     return redirect(APP.config['RETURN_URI'], code=302)
+
+
+@APP.route('/slack', methods=['DELETE'])
+@_AUTH.oidc_auth
+def _revoke_slack():
+    """ Revokes Slack by clearing slackUID """
+    uid = str(session["userinfo"].get("preferred_username", ""))
+    member = _LDAP.get_member(uid, uid=True)
+    member.slackUID = None
