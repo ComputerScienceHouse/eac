@@ -4,9 +4,10 @@ import os
 IP = os.environ.get('IP', '127.0.0.1')
 PORT = os.environ.get('PORT', 5000)
 SERVER_NAME = os.environ.get('SERVER_NAME', 'localhost')
+SECRET_KEY = os.environ.get('SESSION_KEY', '')
 
 # OpenID Connect SSO config
-OIDC_ISSUER = os.environ.get('OIDC_ISSUER', 'https://sso.csh.rit.edu/realms/csh')
+OIDC_ISSUER = os.environ.get('OIDC_ISSUER', 'https://sso.csh.rit.edu/auth/realms/csh')
 OIDC_CLIENT_CONFIG = {
     'client_id': os.environ.get('OIDC_CLIENT_ID', ''),
     'client_secret': os.environ.get('OIDC_CLIENT_SECRET', ''),

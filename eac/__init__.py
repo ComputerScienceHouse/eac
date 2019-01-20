@@ -15,6 +15,8 @@ if os.path.exists(os.path.join(os.getcwd(), "config.py")):
 else:
     APP.config.from_pyfile(os.path.join(os.getcwd(), "config.env.py"))
 
+APP.secret_key = APP.config['SECRET_KEY']
+
 _AUTH = OIDCAuthentication(APP,
                            issuer=APP.config['OIDC_ISSUER'],
                            client_registration_info=APP.config['OIDC_CLIENT_CONFIG'])
@@ -33,5 +35,6 @@ def _handle():
                          APP.config['SLACK_SECRET'], request.args.get('code')))
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
-    member.slackID = resp.json()['user']['id']
+    print(resp.json()) # DEBUG
+    member.slackUID = resp.json()['user']['id']
     return redirect(APP.config['RETURN_URI'], code=302)
