@@ -28,6 +28,9 @@ _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
        + '?client_id=%s&client_secret=%s&code=%s'
 
+_ORG_HEADER = { 'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
+               'Accept' : 'application/vnd.github.v3+json' }
+
 
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth
@@ -100,14 +103,16 @@ def _github_landing():
         return "Invalid state", 400
     return "Success", 200
 
+
 def _link_github(github, member):
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github: the user's github username
     :param member: the member's LDAP object
     """
+    resp = requests.put("https://api.github.com/orgs/ComputerScienceHouse/memberships/" + github, headers=_ORG_HEADER)
+    print(resp.json())
     member.github = github
-    # TODO add to org. Need owner auth to edit membership
 
 
 def _revoke_github(github, member):
@@ -116,5 +121,5 @@ def _revoke_github(github, member):
     :param github: the user's github username
     :param member: the member's LDAP object
     """
+    resp = requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + github, headers=_ORG_HEADER)
     member.github = None
-    # TODO remove from org. Need owner auth to edit membership
