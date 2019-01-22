@@ -28,8 +28,8 @@ _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
        + '?client_id=%s&client_secret=%s&code=%s'
 
-_ORG_HEADER = { 'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
-               'Accept' : 'application/vnd.github.v3+json' }
+_ORG_HEADER = {'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
+               'Accept' : 'application/vnd.github.v3+json'}
 
 
 @APP.route('/slack', methods=['GET'])
@@ -83,7 +83,7 @@ def _github_landing():
     print(resp.text)
     token = resp.json()['access_token']
     header = {'Authorization' : 'token ' + token,
-              'Accept' : 'application/vnd.github.v3+json' }
+              'Accept' : 'application/vnd.github.v3+json'}
 
     user_resp = requests.get('https://api.github.com/user', headers=header)
     print(user_resp.text)
@@ -111,7 +111,7 @@ def _link_github(github, member):
     :param member: the member's LDAP object
     """
     resp = requests.put("https://api.github.com/orgs/ComputerScienceHouse/memberships/" + github, headers=_ORG_HEADER)
-    print(resp.json())
+    print(resp.json()) # Debug
     member.github = github
 
 
@@ -121,5 +121,5 @@ def _revoke_github(github, member):
     :param github: the user's github username
     :param member: the member's LDAP object
     """
-    resp = requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + github, headers=_ORG_HEADER)
+    requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + github, headers=_ORG_HEADER)
     member.github = None
