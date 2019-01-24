@@ -21,28 +21,38 @@ _AUTH = OIDCAuthentication(APP,
 
 _LDAP = csh_ldap.CSHLDAP(APP.config['LDAP_DN'], APP.config['LDAP_SECRET'])
 
+_SLACK_AUTH_URI = 'https://slack.com/oauth/authorize' \
+        + '?scope=identity.basic&client_id=%s&state=%s' \
+        + '&redirect_uri=https://eac.csh.rit.edu/slack/return'
 _SLACK_ACCESS_URI = 'https://slack.com/api/oauth.access' \
-       + '?redirect_uri=%s&client_id=%s&client_secret=%s&code=%s'
+        + '?client_id=%s&client_secret=%s&code=%s'
 _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
-       + '?client_id=%s&state=%s'
+        + '?client_id=%s&state=%s'
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
-       + '?client_id=%s&client_secret=%s&code=%s'
+        + '?client_id=%s&client_secret=%s&code=%s'
 
 _ORG_HEADER = {'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
                'Accept' : 'application/vnd.github.v3+json'}
 
-
 @APP.route('/slack', methods=['GET'])
+@_AUTH.oidc_auth
+def _auth_slack():
+    return redirect(_SLACK_AUTH_URI %
+                    (APP.config['SLACK_CLIENT_ID'], APP.config['SLACK_STATE']))
+
+
+@APP.route('/slack/return', methods=['GET'])
 @_AUTH.oidc_auth
 def _link_slack():
     """ Links Slack into LDAP via slackUID """
     resp = requests.get(_SLACK_ACCESS_URI %
-                        (APP.config['REDIRECT_URI'], APP.config['SLACK_CLIENT_ID'],
+                        (APP.config['SLACK_CLIENT_ID'],
                          APP.config['SLACK_SECRET'], request.args.get('code')))
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
+    print(resp.text)
     member.slackUID = resp.json()['user']['id']
-    return redirect(APP.config['RETURN_URI'], code=302)
+    return "success", 200
 
 
 @APP.route('/slack', methods=['DELETE'])
@@ -52,29 +62,25 @@ def _revoke_slack():
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = None
-    return redirect(APP.config['RETURN_URI'], code=302)
+    return "success", 200
 
 
 @APP.route('/github', methods=['GET'])
 @_AUTH.oidc_auth
-def _github_home():
-    # Determine what we have to do and encode it in the request
-    action = str(request.args.get('action'))
-    state = ''
-    if action == 'link':
-        state = APP.config['LINK_STATE']
-    elif action == 'revoke':
-        state = APP.config['REVOKE_STATE']
-    else:
-        return "That's not a valid action", 400
-
+def _auth_github():
     # Redirect to github for authorisation
     return redirect(_GITHUB_AUTH_URI %
-                    (APP.config['GITHUB_CLIENT_ID'], state))
+                    (APP.config['GITHUB_CLIENT_ID'], APP.config['LINK_STATE']))
 
 @APP.route('/github/return', methods=['GET'])
 @_AUTH.oidc_auth
 def _github_landing():
+
+    # Determine if we have a valid reason to do things
+    state = request.args.get('state')
+    if state != APP.config['LINK_STATE']:
+        return "Invalid state", 400
+
     # Get token from github
     resp = requests.post(_GITHUB_TOKEN_URI %
                          (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
@@ -93,15 +99,9 @@ def _github_landing():
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
 
-    # Determine what we are actually doing
-    state = request.args.get('state')
-    if state == APP.config['LINK_STATE']:
-        _link_github(github, member)
-    elif state == APP.config['REVOKE_STATE']:
-        _revoke_github(github, member)
-    else:
-        return "Invalid state", 400
-    return "Success", 200
+    _link_github(github, member)
+    return "success", 200
+    # TODO render a fancy page
 
 
 def _link_github(github, member):
@@ -115,11 +115,12 @@ def _link_github(github, member):
     member.github = github
 
 
-def _revoke_github(github, member):
-    """
-    Clear's a member's github in LDAP and removes them from the org.
-    :param github: the user's github username
-    :param member: the member's LDAP object
-    """
-    requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + github, headers=_ORG_HEADER)
+@APP.route('/github', methods=['DELETE'])
+@_AUTH.oidc_auth
+def _revoke_github():
+    """ Clear's a member's github in LDAP and removes them from the org. """
+    uid = str(session["userinfo"].get("preferred_username", ""))
+    member = _LDAP.get_member(uid, uid=True)
+    requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + member.github, headers=_ORG_HEADER)
     member.github = None
+    return "success", 200
