@@ -1,7 +1,8 @@
 """ A flask application to handle connecting external accounts into CSH LDAP """
 
 import os
-from flask import Flask, request, redirect, session
+import subprocess
+from flask import Flask, request, redirect, session, render_template, send_from_directory
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
 import requests
 import csh_ldap
@@ -34,6 +35,17 @@ _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
 _ORG_HEADER = {'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
                'Accept' : 'application/vnd.github.v3+json'}
 
+@APP.route('/static/<path:path>', methods=['GET'])
+def _send_static(path):
+    return send_from_directory('static', path)
+
+@APP.route('/')
+def _index():
+    commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
+    member = _LDAP.get_member('mom', uid=True)
+    return render_template('home.html', commit_hash=commit_hash,
+                           slack=member.slackuid, github=member.github)
+
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth
 def _auth_slack():
@@ -52,7 +64,7 @@ def _link_slack():
     member = _LDAP.get_member(uid, uid=True)
     print(resp.text)
     member.slackUID = resp.json()['user']['id']
-    return "success", 200
+    render_template('landing_page.html')
 
 
 @APP.route('/slack', methods=['DELETE'])
@@ -62,7 +74,6 @@ def _revoke_slack():
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = None
-    return "success", 200
 
 
 @APP.route('/github', methods=['GET'])
@@ -74,7 +85,7 @@ def _auth_github():
 
 @APP.route('/github/return', methods=['GET'])
 @_AUTH.oidc_auth
-def _github_landing():
+def _github_landing(): # pylint: disable=inconsistent-return-statements
 
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
@@ -100,8 +111,7 @@ def _github_landing():
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github, member)
-    return "success", 200
-    # TODO render a fancy page
+    render_template('landing_page.html')
 
 
 def _link_github(github, member):
@@ -123,4 +133,3 @@ def _revoke_github():
     member = _LDAP.get_member(uid, uid=True)
     requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + member.github, headers=_ORG_HEADER)
     member.github = None
-    return "success", 200

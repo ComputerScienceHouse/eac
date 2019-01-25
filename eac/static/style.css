@@ -1,0 +1,15 @@
+img {
+    height: 50px;
+}
+
+body {
+    background-color:rgb(176, 25, 126);
+}
+
+.col-md-4 {
+    width: 200px;
+}
+
+.row {
+    height: 150px;
+}

@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+        <meta name="description" content="">
+        <meta name="author" content="Max Meinhold">
+
+        <title>External Account Connector</title>
+
+        <meta name="theme-color" content="#B0197E">
+        <!-- <link rel="shortcut icon" href="/static/favicon.ico"> -->
+
+        <!-- Bootstrap core CSS -->
+        <link rel="stylesheet" href="https://s3.csh.rit.edu/csh-material-bootstrap/4.0.0/dist/csh-material-bootstrap.min.css" media="screen">
+
+        <!-- Local CSS -->
+        <link rel="stylesheet" href="/static/style.css" media="screen">
+
+        <!-- DELETE requests -->
+        <script type="text/javascript">
+            function delete_req(url) {
+                var xhr = new XMLHttpRequest();
+                xhr.open("DELETE", url, true);
+                xhr.send(null);
+            }
+        </script>
+
+    </head>
+
+    <body>
+        
+        <div class="container">
+            <div class="row justify-content-center">
+                <!-- Slack -->
+                <div class="col-md-4">
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="card-title text-center">
+                                <img src="https://cdn.brandfolder.io/5H442O3W/as/pl546j-7le8zk-ex8w65/Slack_RGB.svg ">
+                            </div>
+                            <div class="card-text text-center">
+                                {% if slack %}
+                                <button type="button" class="btn btn-danger" onclick="delete_req('https://eac.csh.rit.edu/slack')">Unlink</button>
+                                {% else %}
+                                <button type="button" class="btn btn-primary" onclick="window.open('/slack');">Link</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- GitHub -->
+                <div class="col-md-4">
+                    <div class="card mt-3">
+                        <div class="card-body">
+                            <div class="card-title text-center">
+                                <img src="/static/GitHub_Logo.png">
+                            </div>
+                            <div class="card-text text-center">
+                                {% if github %}
+                                <button type="button" class="btn btn-danger" onclick="delete_req('https://eac.csh.rit.edu/github')">Unlink</button>
+                                {% else %}
+                                <button type="button" class="btn btn-primary" onclick="window.open('/github');">Link</button>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if commit_hash %}
+        <!-- Footer -->
+        <footer class="py-2 bg">
+            <div class="container">
+                <p class="m-0 footer">
+                <a href="https://github.com/ComputerScienceHouse/eac/tree/{{ commit_hash }}">EAC ({{ commit_hash }})</a>
+                </p>
+            </div>
+            <!-- /.container -->
+        </footer>
+        {% endif %}
+
+        </div>
+        </section>
+
+        <!-- Bootstrap core JS -->
+        <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+    </body>
+</html>
