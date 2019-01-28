@@ -2,7 +2,7 @@
 
 import os
 import subprocess
-from flask import Flask, request, redirect, session, render_template, send_from_directory
+from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
 import requests
 import csh_ldap
@@ -74,6 +74,7 @@ def _revoke_slack():
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = None
+    return jsonify(success=True)
 
 
 @APP.route('/github', methods=['GET'])
@@ -133,3 +134,4 @@ def _revoke_github():
     member = _LDAP.get_member(uid, uid=True)
     requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + member.github, headers=_ORG_HEADER)
     member.github = None
+    return jsonify(success=True)
