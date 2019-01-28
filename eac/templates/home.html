@@ -24,13 +24,14 @@
                 var xhr = new XMLHttpRequest();
                 xhr.open("DELETE", url, true);
                 xhr.send(null);
+                console.log(xhr.response)
             }
         </script>
 
     </head>
 
     <body>
-        
+
         <div class="container">
             <div class="row justify-content-center">
                 <!-- Slack -->
@@ -42,7 +43,7 @@
                             </div>
                             <div class="card-text text-center">
                                 {% if slack %}
-                                <button type="button" class="btn btn-danger" onclick="delete_req('https://eac.csh.rit.edu/slack')">Unlink</button>
+                                <button type="button" class="btn btn-danger" onclick="delete_req('/slack')">Unlink</button>
                                 {% else %}
                                 <button type="button" class="btn btn-primary" onclick="window.open('/slack');">Link</button>
                                 {% endif %}
@@ -60,7 +61,7 @@
                             </div>
                             <div class="card-text text-center">
                                 {% if github %}
-                                <button type="button" class="btn btn-danger" onclick="delete_req('https://eac.csh.rit.edu/github')">Unlink</button>
+                                <button type="button" class="btn btn-danger" onclick="delete_req('/github')">Unlink</button>
                                 {% else %}
                                 <button type="button" class="btn btn-primary" onclick="window.open('/github');">Link</button>
                                 {% endif %}
@@ -73,10 +74,10 @@
 
         {% if commit_hash %}
         <!-- Footer -->
-        <footer class="py-2 bg">
-            <div class="container">
-                <p class="m-0 footer">
-                <a href="https://github.com/ComputerScienceHouse/eac/tree/{{ commit_hash }}">EAC ({{ commit_hash }})</a>
+        <footer class="bg">
+            <div class="container my-3">
+                <p class="text-center">
+                    <a class="text-secondary" href="https://github.com/ComputerScienceHouse/eac/tree/{{ commit_hash }}">EAC ({{ commit_hash }})</a>
                 </p>
             </div>
             <!-- /.container -->
@@ -88,7 +89,7 @@
 
         <!-- Bootstrap core JS -->
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.6/umd/popper.min.js" integrity="sha384-wHAiFfRlMFy6i5SRaxvfOCifBUQy1xHdJ/yoi7FRNXMRBu5WHdZYu1hA6ZOblgut" crossorigin="anonymous"></script>
+        <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.2.1/js/bootstrap.min.js" integrity="sha384-B0UglyR+jN6CkvvICOB2joaf5I4l3gm9GU6Hc1og6Ls7i6U/mkkaduKaBhlAXv9k" crossorigin="anonymous"></script>
     </body>
 </html>
