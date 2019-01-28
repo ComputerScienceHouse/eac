@@ -20,10 +20,7 @@ LDAP_SECRET = os.environ.get('LDAP_SECRET', '')
 # Slack secrets
 SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID', '')
 SLACK_SECRET = os.environ.get('SLACK_SECRET', '')
-REDIRECT_URI = os.environ.get('SLACK_REDIRECT', 'http://localhost/slack:5000')
 SLACK_STATE = os.environ.get('AUTH_STATE', 'auth')
-
-RETURN_URI = os.environ.get('RETURN_URI', 'https://members.csh.rit.edu')
 
 # GitHub secrets
 LINK_STATE = os.environ.get('LINK_STATE', 'link')

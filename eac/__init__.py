@@ -64,7 +64,7 @@ def _link_slack():
     member = _LDAP.get_member(uid, uid=True)
     print(resp.text)
     member.slackUID = resp.json()['user']['id']
-    render_template('landing_page.html')
+    return render_template('landing_page.html')
 
 
 @APP.route('/slack', methods=['DELETE'])
@@ -111,7 +111,7 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github, member)
-    render_template('landing_page.html')
+    return render_template('landing_page.html')
 
 
 def _link_github(github, member):
