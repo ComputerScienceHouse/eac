@@ -40,9 +40,11 @@ def _send_static(path):
     return send_from_directory('static', path)
 
 @APP.route('/')
+@_AUTH.oidc_auth
 def _index():
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     member = _LDAP.get_member('mom', uid=True)
+    print(member.slackuid) # DEBUG
     return render_template('home.html', commit_hash=commit_hash,
                            slack=member.slackuid, github=member.github)
 
