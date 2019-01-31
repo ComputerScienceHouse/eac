@@ -1,10 +1,11 @@
+import secrets
 import os
 
 # Flask config
 IP = os.environ.get('IP', '127.0.0.1')
 PORT = os.environ.get('PORT', 5000)
-SERVER_NAME = os.environ.get('SERVER_NAME', 'localhost')
-SECRET_KEY = os.environ.get('SESSION_KEY', '')
+SERVER_NAME = os.environ.get('SERVER_NAME', 'localhost:5000')
+SECRET_KEY = os.environ.get('SESSION_KEY', default=''.join(secrets.token_hex(16)))
 
 # OpenID Connect SSO config
 OIDC_ISSUER = os.environ.get('OIDC_ISSUER', 'https://sso.csh.rit.edu/auth/realms/csh')

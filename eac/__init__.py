@@ -45,9 +45,15 @@ def _index():
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     uid = str(session["userinfo"].get("preferred_username", ""))
     member = _LDAP.get_member(uid, uid=True)
-    print(member.displayname) # Logging
-    return render_template('home.html', commit_hash=commit_hash,
-                           slack=member.slackuid, github=member.github)
+    services = {
+        "Slack": member.slackuid,
+        "GitHub": member.github
+    }
+
+    return render_template('home.html',
+                           commit_hash=commit_hash,
+                           uid=uid,
+                           services=services)
 
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth
@@ -67,7 +73,7 @@ def _link_slack():
     member = _LDAP.get_member(uid, uid=True)
     print(resp.text)
     member.slackUID = resp.json()['user']['id']
-    return render_template('landing_page.html')
+    return render_template('callback.html')
 
 
 @APP.route('/slack', methods=['DELETE'])
@@ -115,7 +121,7 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github, member)
-    return render_template('landing_page.html')
+    return render_template('callback.html')
 
 
 def _link_github(github, member):
@@ -138,3 +144,9 @@ def _revoke_github():
     requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + member.github, headers=_ORG_HEADER)
     member.github = None
     return jsonify(success=True)
+
+
+@APP.route("/logout")
+@_AUTH.oidc_logout
+def logout():
+    return redirect("/", 302)
