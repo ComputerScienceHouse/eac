@@ -21,7 +21,12 @@
                     .catch(reload);
             } else {
                 const popup = window.open(endpoint, serviceName, "height=800,width=600");
-                popup.addEventListener("message", reload);
+                const timer = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(timer);
+                        reload();
+                    }
+                }, 500);
             }
         });
     }

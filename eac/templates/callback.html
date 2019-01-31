@@ -3,10 +3,7 @@
     <head>
         <title>Redirecting...</title>
         <script>
-            if (window.opener != null) {
-                window.opener.postMessage("success");
-            }
-            window.close();
+            window.addEventListener("load", window.close);
         </script>
     </head>
     <body>Success</body>
