@@ -1,0 +1,13 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <title>Redirecting...</title>
+        <script>
+            if (window.opener != null) {
+                window.opener.postMessage("success");
+            }
+            window.close();
+        </script>
+    </head>
+    <body>Success</body>
+</html>

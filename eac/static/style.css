@@ -1,15 +1,9 @@
-img {
-    height: 50px;
-}
-
 body {
-    background-color:rgb(176, 25, 126);
+    padding-top: 80px;
 }
 
-.col-md-4 {
-    width: 200px;
+.services img {
+    height: 3rem;
+    padding: 0.5rem;
 }
 
-.row {
-    height: 150px;
-}
