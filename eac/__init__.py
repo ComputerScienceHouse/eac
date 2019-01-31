@@ -43,8 +43,9 @@ def _send_static(path):
 @_AUTH.oidc_auth
 def _index():
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
-    member = _LDAP.get_member('mom', uid=True)
-    print(member.slackuid) # DEBUG
+    uid = str(session["userinfo"].get("preferred_username", ""))
+    member = _LDAP.get_member(uid, uid=True)
+    print(member.displayname) # Logging
     return render_template('home.html', commit_hash=commit_hash,
                            slack=member.slackuid, github=member.github)
 
