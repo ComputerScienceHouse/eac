@@ -3,6 +3,7 @@
 import os
 import subprocess
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
+from flask_pyoidc.provider_configuration import *
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
 import requests
 import csh_ldap
@@ -16,9 +17,13 @@ else:
 
 APP.secret_key = APP.config['SECRET_KEY']
 
-_AUTH = OIDCAuthentication(APP,
-                           issuer=APP.config['OIDC_ISSUER'],
-                           client_registration_info=APP.config['OIDC_CLIENT_CONFIG'])
+_CONFIG = ProviderConfiguration(
+    APP.config['OIDC_ISSUER'],
+    client_metadata = ClientMetadata(
+        **APP.config['OIDC_CLIENT_CONFIG']
+    )
+)
+_AUTH = OIDCAuthentication({'default': _CONFIG}, APP)
 
 _LDAP = csh_ldap.CSHLDAP(APP.config['LDAP_DN'], APP.config['LDAP_SECRET'])
 
@@ -40,7 +45,7 @@ def _send_static(path):
     return send_from_directory('static', path)
 
 @APP.route('/')
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _index():
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     uid = str(session["userinfo"].get("preferred_username", ""))
@@ -56,14 +61,14 @@ def _index():
                            services=services)
 
 @APP.route('/slack', methods=['GET'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _auth_slack():
     return redirect(_SLACK_AUTH_URI %
                     (APP.config['SLACK_CLIENT_ID'], APP.config['SLACK_STATE']))
 
 
 @APP.route('/slack/return', methods=['GET'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _link_slack():
     """ Links Slack into LDAP via slackUID """
     resp = requests.get(_SLACK_ACCESS_URI %
@@ -77,7 +82,7 @@ def _link_slack():
 
 
 @APP.route('/slack', methods=['DELETE'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _revoke_slack():
     """ Revokes Slack by clearing slackUID """
     uid = str(session["userinfo"].get("preferred_username", ""))
@@ -87,14 +92,14 @@ def _revoke_slack():
 
 
 @APP.route('/github', methods=['GET'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _auth_github():
     # Redirect to github for authorisation
     return redirect(_GITHUB_AUTH_URI %
                     (APP.config['GITHUB_CLIENT_ID'], APP.config['LINK_STATE']))
 
 @APP.route('/github/return', methods=['GET'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _github_landing(): # pylint: disable=inconsistent-return-statements
 
     # Determine if we have a valid reason to do things
@@ -136,7 +141,7 @@ def _link_github(github, member):
 
 
 @APP.route('/github', methods=['DELETE'])
-@_AUTH.oidc_auth
+@_AUTH.oidc_auth('default')
 def _revoke_github():
     """ Clear's a member's github in LDAP and removes them from the org. """
     uid = str(session["userinfo"].get("preferred_username", ""))
