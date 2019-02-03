@@ -1,5 +1,5 @@
 flask
 requests
 csh_ldap
-Flask-pyoidc==1.3.0
+Flask-pyoidc
 pylint
