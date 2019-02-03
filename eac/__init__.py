@@ -19,7 +19,7 @@ APP.secret_key = APP.config['SECRET_KEY']
 
 _CONFIG = ProviderConfiguration(
     APP.config['OIDC_ISSUER'],
-    client_metadata = ClientMetadata(
+    client_metadata=ClientMetadata(
         **APP.config['OIDC_CLIENT_CONFIG']
     )
 )
