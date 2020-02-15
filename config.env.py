@@ -21,10 +21,15 @@ LDAP_SECRET = os.environ.get('LDAP_SECRET', '')
 # Slack secrets
 SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID', '')
 SLACK_SECRET = os.environ.get('SLACK_SECRET', '')
-SLACK_STATE = os.environ.get('AUTH_STATE', 'auth')
 
 # GitHub secrets
-LINK_STATE = os.environ.get('LINK_STATE', 'link')
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_ID', '')
 GITHUB_SECRET = os.environ.get('GITHUB_SECRET', '')
 ORG_TOKEN = os.environ.get('GITHUB_ORG_TOKEN', '')
+
+# Twitch secrets
+TWITCH_CLIENT_ID = os.environ.get('TWITCH_CLIENT_ID', '')
+TWITCH_CLIENT_SECRET = os.environ.get('TWITCH_CLIENT_SECRET', '')
+
+# Common secrets
+STATE = os.environ.get('STATE', 'auth')
