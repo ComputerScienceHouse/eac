@@ -3,3 +3,4 @@ requests
 csh_ldap
 Flask-pyoidc
 pylint
+sentry-sdk[flask]==0.14.2

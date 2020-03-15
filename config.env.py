@@ -18,6 +18,9 @@ OIDC_CLIENT_CONFIG = {
 LDAP_DN = os.environ.get('LDAP_DN', '')
 LDAP_SECRET = os.environ.get('LDAP_SECRET', '')
 
+# Sentry config
+SENTRY_DSN = os.environ.get('SENTRY_DSN', '')
+
 # Slack secrets
 SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID', '')
 SLACK_SECRET = os.environ.get('SLACK_SECRET', '')

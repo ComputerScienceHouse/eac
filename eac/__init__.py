@@ -2,11 +2,15 @@
 
 import os
 import subprocess
+
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
-from flask_pyoidc.provider_configuration import *
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
-import requests
+from flask_pyoidc.provider_configuration import *
 import csh_ldap
+import requests
+import sentry_sdk
+from sentry_sdk.integrations.flask import FlaskIntegration
+
 
 APP = Flask(__name__)
 
@@ -14,6 +18,11 @@ if os.path.exists(os.path.join(os.getcwd(), "config.py")):
     APP.config.from_pyfile(os.path.join(os.getcwd(), "config.py"))
 else:
     APP.config.from_pyfile(os.path.join(os.getcwd(), "config.env.py"))
+
+sentry_sdk.init(
+        dsn=APP.config['SENTRY_DSN'],
+        integrations=[FlaskIntegration()]
+        )
 
 APP.secret_key = APP.config['SECRET_KEY']
 
