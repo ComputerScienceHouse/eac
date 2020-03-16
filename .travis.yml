@@ -1,7 +1,7 @@
 language: python
 python:
-  - "3.6"
+  - "3.8"
 script:
-  - "pylint eac"
+  - "pylint --load-plugins pylint_quotes eac"
 notifications:
   email: false

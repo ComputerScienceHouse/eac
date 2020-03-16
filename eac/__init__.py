@@ -14,10 +14,10 @@ from sentry_sdk.integrations.flask import FlaskIntegration
 
 APP = Flask(__name__)
 
-if os.path.exists(os.path.join(os.getcwd(), "config.py")):
-    APP.config.from_pyfile(os.path.join(os.getcwd(), "config.py"))
+if os.path.exists(os.path.join(os.getcwd(), 'config.py')):
+    APP.config.from_pyfile(os.path.join(os.getcwd(), 'config.py'))
 else:
-    APP.config.from_pyfile(os.path.join(os.getcwd(), "config.env.py"))
+    APP.config.from_pyfile(os.path.join(os.getcwd(), 'config.env.py'))
 
 sentry_sdk.init(
         dsn=APP.config['SENTRY_DSN'],
@@ -80,12 +80,12 @@ def _send_static(path):
 @_AUTH.oidc_auth('default')
 def _index():
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     services = {
-        "Slack": member.slackuid,
-        "GitHub": member.github,
-        "Twitch": member.twitchlogin,
+        'Slack': member.slackuid,
+        'GitHub': member.github,
+        'Twitch': member.twitchlogin,
     }
 
     return render_template('home.html',
@@ -109,12 +109,12 @@ def _link_slack(): # pylint: disable=inconsistent-return-statements
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
-        return "Invalid state", 400
+        return 'Invalid state', 400
 
     resp = requests.get(_SLACK_ACCESS_URI %
                         (APP.config['SLACK_CLIENT_ID'],
                          APP.config['SLACK_SECRET'], request.args.get('code')))
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     print(resp.text)
     member.slackUID = resp.json()['user']['id']
@@ -125,7 +125,7 @@ def _link_slack(): # pylint: disable=inconsistent-return-statements
 @_AUTH.oidc_auth('default')
 def _revoke_slack():
     """ Revokes Slack by clearing slackUID """
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = None
     return jsonify(success=True)
@@ -145,7 +145,7 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
-        return "Invalid state", 400
+        return 'Invalid state', 400
 
     # Get token from github
     resp = requests.post(_GITHUB_TOKEN_URI %
@@ -162,7 +162,7 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     github = user_resp.json()['login']
 
     # Pull member from LDAP
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github, member)
@@ -175,7 +175,7 @@ def _link_github(github, member):
     :param github: the user's github username
     :param member: the member's LDAP object
     """
-    resp = requests.put("https://api.github.com/orgs/ComputerScienceHouse/memberships/" + github, headers=_ORG_HEADER)
+    resp = requests.put('https://api.github.com/orgs/ComputerScienceHouse/memberships/' + github, headers=_ORG_HEADER)
     print(resp.json()) # Debug
     member.github = github
 
@@ -184,9 +184,9 @@ def _link_github(github, member):
 @_AUTH.oidc_auth('default')
 def _revoke_github():
     """ Clear's a member's github in LDAP and removes them from the org. """
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    requests.delete("https://api.github.com/orgs/ComputerScienceHouse/members/" + member.github, headers=_ORG_HEADER)
+    requests.delete('https://api.github.com/orgs/ComputerScienceHouse/members/' + member.github, headers=_ORG_HEADER)
     member.github = None
     return jsonify(success=True)
 
@@ -205,7 +205,7 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
-        return "Invalid state", 400
+        return 'Invalid state', 400
 
     resp = requests.post(_TWITCH_TOKEN_URI %
                          (APP.config['TWITCH_CLIENT_ID'], APP.config['TWITCH_CLIENT_SECRET'],
@@ -214,11 +214,11 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
 
     print(resp.text)
     header = {'Authorization' : 'OAuth ' + resp.json()['access_token'], }
-    resp = requests.get("https://id.twitch.tv/oauth2/validate", headers=header)
+    resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header)
 
 
     # Pull member from LDAP
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
 
     member.twitchlogin = resp.json()['login']
@@ -229,13 +229,13 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
 @_AUTH.oidc_auth('default')
 def _revoke_twitch():
     """ Clear's a member's twitch login in LDAP."""
-    uid = str(session["userinfo"].get("preferred_username", ""))
+    uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     member.twitchlogin = None
     return jsonify(success=True)
 
 
-@APP.route("/logout")
+@APP.route('/logout')
 @_AUTH.oidc_logout
 def logout():
-    return redirect("/", 302)
+    return redirect('/', 302)
