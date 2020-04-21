@@ -116,7 +116,6 @@ def _link_slack(): # pylint: disable=inconsistent-return-statements
                          APP.config['SLACK_SECRET'], request.args.get('code')))
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    print(resp.text)
     member.slackUID = resp.json()['user']['id']
     return render_template('callback.html')
 
@@ -152,13 +151,11 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
                          (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
                           request.args.get('code')),
                           headers={'Accept':'application/json'})
-    print(resp.text)
     token = resp.json()['access_token']
     header = {'Authorization' : 'token ' + token,
               'Accept' : 'application/vnd.github.v3+json'}
 
     user_resp = requests.get('https://api.github.com/user', headers=header)
-    print(user_resp.text)
     github = user_resp.json()['login']
 
     # Pull member from LDAP
@@ -175,8 +172,7 @@ def _link_github(github, member):
     :param github: the user's github username
     :param member: the member's LDAP object
     """
-    resp = requests.put('https://api.github.com/orgs/ComputerScienceHouse/memberships/' + github, headers=_ORG_HEADER)
-    print(resp.json()) # Debug
+    requests.put('https://api.github.com/orgs/ComputerScienceHouse/memberships/' + github, headers=_ORG_HEADER)
     member.github = github
 
 
@@ -212,7 +208,6 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
                           request.args.get('code')),
                           headers={'Accept':'application/json'})
 
-    print(resp.text)
     header = {'Authorization' : 'OAuth ' + resp.json()['access_token'], }
     resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header)
 
