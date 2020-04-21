@@ -98,6 +98,7 @@ def _index():
         'Slack': member.slackuid,
         'GitHub': member.github,
         'Twitch': member.twitchlogin,
+        'Twitter': member.twitter_handle,
     }
 
     return render_template('home.html',
@@ -345,7 +346,7 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     oauth_signature_base_string = "POST&" \
                                   + urllib.parse.quote(_TWITTER_ACCOUNT_INFO_URI, safe='') + "&" \
                                   + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{oauth_token}"
+    oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{oauth_token_secret}"
     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
                                                 oauth_signature_base_string.encode(),
                                                 sha1).digest()).decode('UTF-8')
@@ -365,6 +366,16 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     member = _LDAP.get_member(uid, uid=True)
     member.twitter_handle = resp.json()[0]['screen_name']
     return render_template('callback.html')
+
+
+@APP.route('/twitter', methods=['DELETE'])
+@_AUTH.oidc_auth('default')
+def _revoke_twitter():
+    """ Clear's a member's twitter login in LDAP."""
+    uid = str(session['userinfo'].get('preferred_username', ''))
+    member = _LDAP.get_member(uid, uid=True)
+    member.twitter_handle = None
+    return jsonify(success=True)
 
 
 @APP.route('/logout')
