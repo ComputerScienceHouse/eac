@@ -253,17 +253,17 @@ def _revoke_twitch():
 def _auth_twitter():
     # Make a POST request to get the request token
     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = str(int(time.time()))
-    oauth_parameter_string = f"oauth_callback={urllib.parse.quote('https://eac.csh.rit.edu/twitter/return', safe='')}" \
-                             f"&oauth_consumer_key={APP.config['TWITTER_CONSUMER_KEY']}" \
-                             f"&oauth_nonce={oauth_nonce}" \
-                             f"&oauth_signature_method=HMAC-SHA1" \
-                             f"&oauth_timestamp={oauth_timestamp}" \
-                             f"&oauth_version=1.0"
-    oauth_signature_base_string = "POST&" \
-            + urllib.parse.quote(_TWITTER_REQUEST_TOKEN_URI, safe='') + "&" \
+    oauth_timestamp = int(time.time())
+    oauth_parameter_string = f'oauth_callback={urllib.parse.quote("https://eac.csh.rit.edu/twitter/return", safe="")}' \
+                             f'&oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+                             f'&oauth_nonce={oauth_nonce}' \
+                             f'&oauth_signature_method=HMAC-SHA1' \
+                             f'&oauth_timestamp={oauth_timestamp}' \
+                             f'&oauth_version=1.0'
+    oauth_signature_base_string = 'POST&' \
+            + urllib.parse.quote(_TWITTER_REQUEST_TOKEN_URI, safe='') + '&' \
             + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&"
+    oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&'
     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
                                                 oauth_signature_base_string.encode(),
                                                 sha1).digest()).decode('UTF-8')
@@ -279,14 +279,13 @@ def _auth_twitter():
     resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
                          headers={'Accept': '*/*',
                                   'Authorization': oauth_header})
-    print(resp.text())
     if resp.status_code != 200:
-        return "Error fetching request_token", 400
+        print(f'Status: {resp.status_code}\nMessage: {resp.text()}')
+        return 'Error fetching request_token', 500
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
                                             for element in resp.text().split('&')))
 
-    global _TWITTER_AUTH_TOKEN_CACHE
     _TWITTER_AUTH_TOKEN_CACHE[returned_params['oauth_token']] = returned_params['oauth_token_secret']
     # Redirect to twitter for authorisation
     return redirect(f'{_TWITTER_AUTHORIZATION_URI}?oauth_token={returned_params["oauth_token"]}')
@@ -298,18 +297,18 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     oauth_token = request.args.get('oauth_token')
     oauth_verifier = request.args.get('oauth_verifier')
     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = str(int(time.time()))
-    oauth_parameter_string = f"oauth_consumer_key={APP.config['TWITTER_CONSUMER_KEY']}" \
-                             f"&oauth_nonce={oauth_nonce}" \
-                             f"&oauth_signature_method=HMAC-SHA1" \
-                             f"&oauth_timestamp={oauth_timestamp}" \
-                             f"&oauth_token={urllib.parse.quote(oauth_token, safe='')}" \
-                             f"&oauth_verifier={urllib.parse.quote(oauth_verifier, safe='')}" \
-                             f"&oauth_version=1.0"
-    oauth_signature_base_string = "POST&" \
-            + urllib.parse.quote(_TWITTER_ACCESS_TOKEN_URI, safe='') + "&" \
+    oauth_timestamp = int(time.time())
+    oauth_parameter_string = f'oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+                             f'&oauth_nonce={oauth_nonce}' \
+                             f'&oauth_signature_method=HMAC-SHA1'- \
+                             f'&oauth_timestamp={oauth_timestamp}' \
+                             f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
+                             f'&oauth_verifier={urllib.parse.quote(oauth_verifier, safe="")}' \
+                             f'&oauth_version=1.0'
+    oauth_signature_base_string = 'POST&' \
+            + urllib.parse.quote(_TWITTER_ACCESS_TOKEN_URI, safe='') + '&' \
             + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{_TWITTER_AUTH_TOKEN_CACHE[oauth_token]}"
+    oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&{_TWITTER_AUTH_TOKEN_CACHE[oauth_token]}'
     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
                                                 oauth_signature_base_string.encode(),
                                                 sha1).digest()).decode('UTF-8')
@@ -326,9 +325,6 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
                          headers={'Accept': '*/*',
                                   'Authorization': oauth_header,
                                   'Content-Type': 'application/x-www-form-urlencoded'})
-    print(resp.text())
-    if resp.status_code != 200:
-        return "Error fetching request_token", 400
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
                                             for element in resp.text().split('&')))
@@ -336,15 +332,15 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     oauth_token_secret = returned_params['oauth_token_secret']
     # OK, now that we have the proper token and secret, we can get the user's information
     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = str(int(time.time()))
-    oauth_parameter_string = f"oauth_consumer_key={APP.config['TWITTER_CONSUMER_KEY']}" \
-                             f"&oauth_nonce={oauth_nonce}" \
-                             f"&oauth_signature_method=HMAC-SHA1" \
-                             f"&oauth_timestamp={oauth_timestamp}" \
-                             f"&oauth_token={urllib.parse.quote(oauth_token, safe='')}" \
-                             f"&oauth_version=1.0"
-    oauth_signature_base_string = "POST&" \
-                                  + urllib.parse.quote(_TWITTER_ACCOUNT_INFO_URI, safe='') + "&" \
+    oauth_timestamp = int(time.time())
+    oauth_parameter_string = f'auth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+                             f'&oauth_nonce={oauth_nonce}' \
+                             f'&oauth_signature_method=HMAC-SHA1' \
+                             f'&oauth_timestamp={oauth_timestamp}' \
+                             f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
+                             f'&oauth_version=1.0'
+    oauth_signature_base_string = 'POST&' \
+                                  + urllib.parse.quote(_TWITTER_ACCOUNT_INFO_URI, safe='') + '&' \
                                   + urllib.parse.quote(oauth_parameter_string, safe='')
     oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{oauth_token_secret}"
     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
