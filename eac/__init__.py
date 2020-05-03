@@ -98,7 +98,7 @@ def _index():
         'Slack': member.slackuid,
         'GitHub': member.github,
         'Twitch': member.twitchlogin,
-        'Twitter': member.twitter_handle,
+        'Twitter': member.twittername,
     }
 
     return render_template('home.html',
@@ -360,7 +360,7 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     # Pull member from LDAP
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    member.twitter_handle = resp.json()[0]['screen_name']
+    member.twittername = resp.json()[0]['screen_name']
     return render_template('callback.html')
 
 
@@ -370,7 +370,7 @@ def _revoke_twitter():
     """ Clear's a member's twitter login in LDAP."""
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    member.twitter_handle = None
+    member.twittername = None
     return jsonify(success=True)
 
 
