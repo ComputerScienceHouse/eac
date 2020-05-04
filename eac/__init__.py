@@ -275,11 +275,11 @@ def _auth_twitter():
                          headers={'Accept': '*/*',
                                   'Authorization': oauth_header})
     if resp.status_code != 200:
-        print(f'Status: {resp.status_code}\nMessage: {resp.text()}')
+        print(f'Status: {resp.status_code}\nMessage: {resp.text}')
         return 'Error fetching request_token', 500
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
-                                            for element in resp.text().split('&')))
+                                            for element in resp.text.split('&')))
 
     _TWITTER_AUTH_TOKEN_CACHE[returned_params['oauth_token']] = returned_params['oauth_token_secret']
     # Redirect to twitter for authorisation
@@ -322,7 +322,7 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
                                   'Content-Type': 'application/x-www-form-urlencoded'})
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
-                                            for element in resp.text().split('&')))
+                                            for element in resp.text.split('&')))
     oauth_token = returned_params['oauth_token']
     oauth_token_secret = returned_params['oauth_token_secret']
     # OK, now that we have the proper token and secret, we can get the user's information
