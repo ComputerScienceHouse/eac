@@ -169,24 +169,31 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
               'Accept' : 'application/vnd.github.v3+json'}
 
     user_resp = requests.get('https://api.github.com/user', headers=header)
-    github = user_resp.json()['login']
+    user_resp_json = user_resp.json()
+    
+    github_username = user_resp_json['login']
+    github_id = user_resp_json['id']
 
     # Pull member from LDAP
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
 
-    _link_github(github, member)
+    _link_github(github_username, github_id, member)
     return render_template('callback.html')
 
 
-def _link_github(github, member):
+def _link_github(github_username, github_id, member):
     """
     Puts a member's github into LDAP and adds them to the org.
-    :param github: the user's github username
+    :param github_username: the user's github username
+    :param github_id: the user's github id
     :param member: the member's LDAP object
     """
-    requests.put('https://api.github.com/orgs/ComputerScienceHouse/memberships/' + github, headers=_ORG_HEADER)
-    member.github = github
+    payload={
+        'invitee_id': github_id
+    }
+    requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=_ORG_HEADER, data=payload)
+    member.github = github_username
 
 
 @APP.route('/github', methods=['DELETE'])
