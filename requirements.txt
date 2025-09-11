@@ -1,7 +1,8 @@
-csh_ldap
-flask
-Flask-pyoidc
-pylint
-pylint-quotes
-requests
-sentry-sdk[flask]==0.14.2
+csh-ldap==2.4.0
+Flask==3.1.2
+Flask-pyoidc==3.14.3
+gunicorn==23.0.0
+pylint==3.3.8
+pylint-quotes==0.2.3
+requests==2.32.5
+sentry-sdk[flask]==2.37.1
