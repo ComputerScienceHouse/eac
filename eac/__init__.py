@@ -9,7 +9,10 @@ import urllib.parse
 import hmac
 from hashlib import sha1
 import base64
+from typing import Any
 
+import flask
+import werkzeug
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
 from flask_pyoidc.provider_configuration import ProviderConfiguration, ClientMetadata
@@ -84,13 +87,13 @@ _ORG_HEADER = {'Authorization' : 'token ' + APP.config['ORG_TOKEN'],
 
 
 @APP.route('/static/<path:path>', methods=['GET'])
-def _send_static(path):
+def _send_static(path: str) -> flask.wrappers.Response:
     return send_from_directory('static', path)
 
 
 @APP.route('/')
 @_AUTH.oidc_auth('default')
-def _index():
+def _index() -> str:
     commit_hash = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD']).strip().decode('utf-8')
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
@@ -109,14 +112,14 @@ def _index():
 
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _auth_slack():
+def _auth_slack() -> werkzeug.Response:
     return redirect(_SLACK_AUTH_URI %
                     (APP.config['SLACK_CLIENT_ID'], APP.config['STATE']))
 
 
 @APP.route('/slack/return', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _link_slack(): # pylint: disable=inconsistent-return-statements
+def _link_slack() -> tuple[str, int]:
     """ Links Slack into LDAP via slackUID """
 
     # Determine if we have a valid reason to do things
@@ -132,12 +135,12 @@ def _link_slack(): # pylint: disable=inconsistent-return-statements
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = resp.json()['user']['id']
-    return render_template('callback.html')
+    return render_template('callback.html'), 200
 
 
 @APP.route('/slack', methods=['DELETE'])
 @_AUTH.oidc_auth('default')
-def _revoke_slack():
+def _revoke_slack() -> werkzeug.Response:
     """ Revokes Slack by clearing slackUID """
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
@@ -147,7 +150,7 @@ def _revoke_slack():
 
 @APP.route('/github', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _auth_github():
+def _auth_github() -> werkzeug.Response:
     # Redirect to github for authorisation
     return redirect(_GITHUB_AUTH_URI %
                     (APP.config['GITHUB_CLIENT_ID'], APP.config['STATE']))
@@ -155,7 +158,7 @@ def _auth_github():
 
 @APP.route('/github/return', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _github_landing(): # pylint: disable=inconsistent-return-statements
+def _github_landing() -> tuple[str, int]:
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
@@ -185,10 +188,10 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github_username, github_id, member)
-    return render_template('callback.html')
+    return render_template('callback.html'), 200
 
 
-def _link_github(github_username, github_id, member):
+def _link_github(github_username: str, github_id: str, member: Any) -> None:
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github_username: the user's github username
@@ -206,7 +209,7 @@ def _link_github(github_username, github_id, member):
 
 @APP.route('/github', methods=['DELETE'])
 @_AUTH.oidc_auth('default')
-def _revoke_github():
+def _revoke_github() -> werkzeug.Response:
     """ Clear's a member's github in LDAP and removes them from the org. """
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
@@ -219,7 +222,7 @@ def _revoke_github():
 
 @APP.route('/twitch', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _auth_twitch():
+def _auth_twitch() -> werkzeug.Response:
     # Redirect to twitch for authorisation
     return redirect(_TWITCH_AUTH_URI %
                     (APP.config['TWITCH_CLIENT_ID'], APP.config['STATE']))
@@ -227,7 +230,7 @@ def _auth_twitch():
 
 @APP.route('/twitch/return', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _twitch_landing(): # pylint: disable=inconsistent-return-statements
+def _twitch_landing() -> tuple[str, int]:
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
@@ -250,12 +253,12 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
     member = _LDAP.get_member(uid, uid=True)
 
     member.twitchlogin = resp.json()['login']
-    return render_template('callback.html')
+    return render_template('callback.html'), 200
 
 
 @APP.route('/twitch', methods=['DELETE'])
 @_AUTH.oidc_auth('default')
-def _revoke_twitch():
+def _revoke_twitch() -> werkzeug.Response:
     """ Clear's a member's twitch login in LDAP."""
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
@@ -265,7 +268,7 @@ def _revoke_twitch():
 
 @APP.route('/twitter', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _auth_twitter():
+def _auth_twitter() -> werkzeug.Response:
     # Make a POST request to get the request token
     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     oauth_timestamp = int(time.time())
@@ -299,7 +302,7 @@ def _auth_twitter():
 
     if resp.status_code != 200:
         print(f'Status: {resp.status_code}\nMessage: {resp.text}')
-        return 'Error fetching request_token', 500
+        return flask.make_response(('Error fetching request_token', 500))
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
                                             for element in resp.text.split('&')))
@@ -311,14 +314,18 @@ def _auth_twitter():
 
 @APP.route('/twitter/return', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _twitter_landing(): # pylint: disable=inconsistent-return-statements
+def _twitter_landing() -> tuple[str, int]:
     oauth_token = request.args.get('oauth_token')
+    if oauth_token is None:
+        return "Failed to get outh token", 400
     oauth_verifier = request.args.get('oauth_verifier')
+    if oauth_verifier is None:
+        return "Failed to get outh verifier", 400
     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
     oauth_timestamp = int(time.time())
     oauth_parameter_string = f'oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
                              f'&oauth_nonce={oauth_nonce}' \
-                             f'&oauth_signature_method=HMAC-SHA1'- \
+                             f'&oauth_signature_method=HMAC-SHA1' \
                              f'&oauth_timestamp={oauth_timestamp}' \
                              f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
                              f'&oauth_verifier={urllib.parse.quote(oauth_verifier, safe="")}' \
@@ -384,12 +391,12 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     member.twittername = resp.json()[0]['screen_name']
-    return render_template('callback.html')
+    return render_template('callback.html'), 200
 
 
 @APP.route('/twitter', methods=['DELETE'])
 @_AUTH.oidc_auth('default')
-def _revoke_twitter():
+def _revoke_twitter() -> werkzeug.Response:
     """ Clear's a member's twitter login in LDAP."""
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
@@ -399,5 +406,5 @@ def _revoke_twitter():
 
 @APP.route('/logout')
 @_AUTH.oidc_logout
-def logout():
+def logout() -> werkzeug.Response:
     return redirect('/', 302)
