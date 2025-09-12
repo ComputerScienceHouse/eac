@@ -16,9 +16,10 @@ RUN --mount=type=bind,source=requirements.txt,target=requirements.txt \
 COPY . /opt/eac
 
 RUN ln -sf /usr/share/zoneinfo/America/New_York /etc/localtime
+RUN git config --system --add safe.directory /opt/eac
 
 ARG PORT=8080
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-CMD ["gunicorn app:application --bind=0.0.0.0:${PORT} --access-logfile=- --timeout=600"]
+CMD ["sh", "-c", "gunicorn app:application --bind=0.0.0.0:${PORT} --access-logfile=- --timeout=600"]
