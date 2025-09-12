@@ -12,7 +12,7 @@ import base64
 
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
-from flask_pyoidc.provider_configuration import *
+from flask_pyoidc.provider_configuration import ProviderConfiguration, ClientMetadata
 import csh_ldap
 import requests
 import sentry_sdk
@@ -126,7 +126,9 @@ def _link_slack(): # pylint: disable=inconsistent-return-statements
 
     resp = requests.get(_SLACK_ACCESS_URI %
                         (APP.config['SLACK_CLIENT_ID'],
-                         APP.config['SLACK_SECRET'], request.args.get('code')))
+                         APP.config['SLACK_SECRET'], request.args.get('code')),
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
     member.slackUID = resp.json()['user']['id']
@@ -163,14 +165,18 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     resp = requests.post(_GITHUB_TOKEN_URI %
                          (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
                           request.args.get('code')),
-                          headers={'Accept':'application/json'})
+                          headers={'Accept':'application/json'},
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     token = resp.json()['access_token']
     header = {'Authorization' : 'token ' + token,
               'Accept' : 'application/vnd.github.v3+json'}
 
-    user_resp = requests.get('https://api.github.com/user', headers=header)
+    user_resp = requests.get('https://api.github.com/user', headers=header,
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     user_resp_json = user_resp.json()
-    
+
     github_username = user_resp_json['login']
     github_id = user_resp_json['id']
 
@@ -192,7 +198,9 @@ def _link_github(github_username, github_id, member):
     payload={
         'invitee_id': github_id
     }
-    requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=_ORG_HEADER, data=payload)
+    requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=_ORG_HEADER, data=payload,
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     member.github = github_username
 
 
@@ -202,7 +210,9 @@ def _revoke_github():
     """ Clear's a member's github in LDAP and removes them from the org. """
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    requests.delete('https://api.github.com/orgs/ComputerScienceHouse/members/' + member.github, headers=_ORG_HEADER)
+    requests.delete('https://api.github.com/orgs/ComputerScienceHouse/members/' + member.github, headers=_ORG_HEADER,
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     member.github = None
     return jsonify(success=True)
 
@@ -226,11 +236,14 @@ def _twitch_landing(): # pylint: disable=inconsistent-return-statements
     resp = requests.post(_TWITCH_TOKEN_URI %
                          (APP.config['TWITCH_CLIENT_ID'], APP.config['TWITCH_CLIENT_SECRET'],
                           request.args.get('code')),
-                          headers={'Accept':'application/json'})
+                          headers={'Accept':'application/json'},
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
 
     header = {'Authorization' : 'OAuth ' + resp.json()['access_token'], }
-    resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header)
-
+    resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header,
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
 
     # Pull member from LDAP
     uid = str(session['userinfo'].get('preferred_username', ''))
@@ -280,7 +293,10 @@ def _auth_twitter():
 
     resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
                          headers={'Accept': '*/*',
-                                  'Authorization': oauth_header})
+                                  'Authorization': oauth_header},
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
+
     if resp.status_code != 200:
         print(f'Status: {resp.status_code}\nMessage: {resp.text}')
         return 'Error fetching request_token', 500
@@ -326,7 +342,10 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
                          data=f'oauth_verifier={oauth_verifier}',
                          headers={'Accept': '*/*',
                                   'Authorization': oauth_header,
-                                  'Content-Type': 'application/x-www-form-urlencoded'})
+                                  'Content-Type': 'application/x-www-form-urlencoded'},
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
+
     returned_params = dict((key.strip(), val.strip())
                            for key, val in (element.split('=')
                                             for element in resp.text.split('&')))
@@ -358,7 +377,9 @@ def _twitter_landing(): # pylint: disable=inconsistent-return-statements
                    f'oauth_version="1.0"'
     resp = requests.get(_TWITTER_ACCOUNT_INFO_URI,
                         headers={'Accept': '*/*',
-                                 'Authorization': oauth_header})
+                                 'Authorization': oauth_header},
+        timeout=APP.config['REQUEST_TIMEOUT'],
+    )
     # Pull member from LDAP
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)

@@ -42,3 +42,6 @@ TWITTER_TOKEN_SECRET = os.environ.get('TWITTER_OAUTH_TOKEN_SECRET', '')
 
 # Common secrets
 STATE = os.environ.get('STATE', 'auth')
+
+# Connection controls
+REQUEST_TIMEOUT = os.environ.get("EAC_REQUEST_TIMEOUT", 60) # default to a minute timeout
