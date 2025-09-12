@@ -1,0 +1,49 @@
+name: Linting and tests
+
+on:
+  push:
+    branches: [master, mom/dev]
+  pull_request:
+    branches: [master, mom/dev]
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    strategy:
+      matrix:
+        python-version: [3.13]
+
+    steps:
+      - name: Install ldap dependencies
+        run: sudo apt-get update && sudo apt-get install libldap2-dev libsasl2-dev
+      - uses: actions/checkout@v5
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v6
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: 'pip'
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
+          mypy --non-interactive --install-types
+      - name: Lint with pylint
+        run: |
+          pylint app.py config.env.py eac
+      - name: Typecheck with mypy
+        run: |
+          mypy app.py config.env.py eac
+      - name: Format with yapf
+        run: |
+          yapf --diff -r app.py config.env.py eac
+
+  docker-build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Build Image
+        run: |
+          docker build . --file Dockerfile
