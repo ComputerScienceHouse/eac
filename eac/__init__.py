@@ -54,7 +54,7 @@ _SLACK_ACCESS_URI = 'https://slack.com/api/oauth.access' \
         + '&code=%s'
 
 _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
-        + '?client_id=%s'\
+        + '?client_id=%s' \
         + '&state=%s'
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
         + '?client_id=%s' \
@@ -164,25 +164,39 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
                          (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
                           request.args.get('code')),
                           headers={'Accept':'application/json'})
-    token = resp.json()['access_token']
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+
+    resp_json = resp.json()
+    token = resp_json['access_token']
     header = {'Authorization' : 'token ' + token,
               'Accept' : 'application/vnd.github.v3+json'}
 
     user_resp = requests.get('https://api.github.com/user', headers=header)
+    try:
+        user_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', user_resp.json())
+        raise e
+
     user_resp_json = user_resp.json()
     
     github_username = user_resp_json['login']
     github_id = user_resp_json['id']
 
     # Pull member from LDAP
-    uid = str(session['userinfo'].get('preferred_username', ''))
-    member = _LDAP.get_member(uid, uid=True)
+    # uid = str(session['userinfo'].get('preferred_username', ''))
+    # member = _LDAP.get_member(uid, uid=True)
+    member = {}
 
-    _link_github(github_username, github_id, member)
+    _link_github(github_username, github_id, member, header)
     return render_template('callback.html')
 
 
-def _link_github(github_username, github_id, member):
+def _link_github(github_username, github_id, member, header):
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github_username: the user's github username
@@ -192,12 +206,17 @@ def _link_github(github_username, github_id, member):
     payload={
         'invitee_id': github_id
     }
-    requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=_ORG_HEADER, data=payload)
-    member.github = github_username
+    resp = requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=header, data=payload)
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+    # member.github = github_username
 
 
 @APP.route('/github', methods=['DELETE'])
-@_AUTH.oidc_auth('default')
+# @_AUTH.oidc_auth('default')
 def _revoke_github():
     """ Clear's a member's github in LDAP and removes them from the org. """
     uid = str(session['userinfo'].get('preferred_username', ''))
@@ -207,176 +226,176 @@ def _revoke_github():
     return jsonify(success=True)
 
 
-@APP.route('/twitch', methods=['GET'])
-@_AUTH.oidc_auth('default')
-def _auth_twitch():
-    # Redirect to twitch for authorisation
-    return redirect(_TWITCH_AUTH_URI %
-                    (APP.config['TWITCH_CLIENT_ID'], APP.config['STATE']))
+# @APP.route('/twitch', methods=['GET'])
+# @_AUTH.oidc_auth('default')
+# def _auth_twitch():
+#     # Redirect to twitch for authorisation
+#     return redirect(_TWITCH_AUTH_URI %
+#                     (APP.config['TWITCH_CLIENT_ID'], APP.config['STATE']))
+#
 
+# @APP.route('/twitch/return', methods=['GET'])
+# @_AUTH.oidc_auth('default')
+# def _twitch_landing(): # pylint: disable=inconsistent-return-statements
+#     # Determine if we have a valid reason to do things
+#     state = request.args.get('state')
+#     if state != APP.config['STATE']:
+#         return 'Invalid state', 400
+#
+#     resp = requests.post(_TWITCH_TOKEN_URI %
+#                          (APP.config['TWITCH_CLIENT_ID'], APP.config['TWITCH_CLIENT_SECRET'],
+#                           request.args.get('code')),
+#                           headers={'Accept':'application/json'})
+#
+#     header = {'Authorization' : 'OAuth ' + resp.json()['access_token'], }
+#     resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header)
+#
+#
+#     # Pull member from LDAP
+#     uid = str(session['userinfo'].get('preferred_username', ''))
+#     member = _LDAP.get_member(uid, uid=True)
+#
+#     member.twitchlogin = resp.json()['login']
+#     return render_template('callback.html')
+#
 
-@APP.route('/twitch/return', methods=['GET'])
-@_AUTH.oidc_auth('default')
-def _twitch_landing(): # pylint: disable=inconsistent-return-statements
-    # Determine if we have a valid reason to do things
-    state = request.args.get('state')
-    if state != APP.config['STATE']:
-        return 'Invalid state', 400
+# @APP.route('/twitch', methods=['DELETE'])
+# @_AUTH.oidc_auth('default')
+# def _revoke_twitch():
+#     """ Clear's a member's twitch login in LDAP."""
+#     uid = str(session['userinfo'].get('preferred_username', ''))
+#     member = _LDAP.get_member(uid, uid=True)
+#     member.twitchlogin = None
+#     return jsonify(success=True)
+#
+#
+# @APP.route('/twitter', methods=['GET'])
+# @_AUTH.oidc_auth('default')
+# def _auth_twitter():
+#     # Make a POST request to get the request token
+#     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+#     oauth_timestamp = int(time.time())
+#     oauth_parameter_string = f'oauth_callback={urllib.parse.quote("https://eac.csh.rit.edu/twitter/return", safe="")}' \
+#                              f'&oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+#                              f'&oauth_nonce={oauth_nonce}' \
+#                              f'&oauth_signature_method=HMAC-SHA1' \
+#                              f'&oauth_timestamp={oauth_timestamp}' \
+#                              f'&oauth_version=1.0'
+#     oauth_signature_base_string = 'POST&' \
+#             + urllib.parse.quote(_TWITTER_REQUEST_TOKEN_URI, safe='') + '&' \
+#             + urllib.parse.quote(oauth_parameter_string, safe='')
+#     oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&'
+#     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
+#                                                 oauth_signature_base_string.encode(),
+#                                                 sha1).digest()).decode('UTF-8')
+#
+#     oauth_header = f'OAuth oauth_callback="https://eac.csh.rit.edu/twitter/return"' \
+#                    f'oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
+#                    f'oauth_nonce="{oauth_nonce}", ' \
+#                    f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
+#                    f'oauth_signature_method="HMAC-SHA1", ' \
+#                    f'oauth_timestamp="{oauth_timestamp}", ' \
+#                    f'oauth_version="1.0"'
+#
+#     resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
+#                          headers={'Accept': '*/*',
+#                                   'Authorization': oauth_header})
+#     if resp.status_code != 200:
+#         print(f'Status: {resp.status_code}\nMessage: {resp.text}')
+#         return 'Error fetching request_token', 500
+#     returned_params = dict((key.strip(), val.strip())
+#                            for key, val in (element.split('=')
+#                                             for element in resp.text.split('&')))
+#
+#     _TWITTER_AUTH_TOKEN_CACHE[returned_params['oauth_token']] = returned_params['oauth_token_secret']
+#     # Redirect to twitter for authorisation
+#     return redirect(f'{_TWITTER_AUTHORIZATION_URI}?oauth_token={returned_params["oauth_token"]}')
+#
+#
+# @APP.route('/twitter/return', methods=['GET'])
+# @_AUTH.oidc_auth('default')
+# def _twitter_landing(): # pylint: disable=inconsistent-return-statements
+#     oauth_token = request.args.get('oauth_token')
+#     oauth_verifier = request.args.get('oauth_verifier')
+#     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+#     oauth_timestamp = int(time.time())
+#     oauth_parameter_string = f'oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+#                              f'&oauth_nonce={oauth_nonce}' \
+#                              f'&oauth_signature_method=HMAC-SHA1'- \
+#                              f'&oauth_timestamp={oauth_timestamp}' \
+#                              f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
+#                              f'&oauth_verifier={urllib.parse.quote(oauth_verifier, safe="")}' \
+#                              f'&oauth_version=1.0'
+#     oauth_signature_base_string = 'POST&' \
+#             + urllib.parse.quote(_TWITTER_ACCESS_TOKEN_URI, safe='') + '&' \
+#             + urllib.parse.quote(oauth_parameter_string, safe='')
+#     oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&{_TWITTER_AUTH_TOKEN_CACHE[oauth_token]}'
+#     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
+#                                                 oauth_signature_base_string.encode(),
+#                                                 sha1).digest()).decode('UTF-8')
+#
+#     oauth_header = f'OAuth oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
+#                    f'oauth_nonce="{oauth_nonce}", ' \
+#                    f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
+#                    f'oauth_signature_method="HMAC-SHA1", ' \
+#                    f'oauth_timestamp="{oauth_timestamp}", ' \
+#                    f'oauth_token="{oauth_token}"' \
+#                    f'oauth_version="1.0"'
+#     resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
+#                          data=f'oauth_verifier={oauth_verifier}',
+#                          headers={'Accept': '*/*',
+#                                   'Authorization': oauth_header,
+#                                   'Content-Type': 'application/x-www-form-urlencoded'})
+#     returned_params = dict((key.strip(), val.strip())
+#                            for key, val in (element.split('=')
+#                                             for element in resp.text.split('&')))
+#     oauth_token = returned_params['oauth_token']
+#     oauth_token_secret = returned_params['oauth_token_secret']
+#     # OK, now that we have the proper token and secret, we can get the user's information
+#     oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
+#     oauth_timestamp = int(time.time())
+#     oauth_parameter_string = f'auth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
+#                              f'&oauth_nonce={oauth_nonce}' \
+#                              f'&oauth_signature_method=HMAC-SHA1' \
+#                              f'&oauth_timestamp={oauth_timestamp}' \
+#                              f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
+#                              f'&oauth_version=1.0'
+#     oauth_signature_base_string = 'POST&' \
+#                                   + urllib.parse.quote(_TWITTER_ACCOUNT_INFO_URI, safe='') + '&' \
+#                                   + urllib.parse.quote(oauth_parameter_string, safe='')
+#     oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{oauth_token_secret}"
+#     oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
+#                                                 oauth_signature_base_string.encode(),
+#                                                 sha1).digest()).decode('UTF-8')
+#
+#     oauth_header = f'OAuth oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
+#                    f'oauth_nonce="{oauth_nonce}", ' \
+#                    f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
+#                    f'oauth_signature_method="HMAC-SHA1", ' \
+#                    f'oauth_timestamp="{oauth_timestamp}", ' \
+#                    f'oauth_token="{oauth_token}"' \
+#                    f'oauth_version="1.0"'
+#     resp = requests.get(_TWITTER_ACCOUNT_INFO_URI,
+#                         headers={'Accept': '*/*',
+#                                  'Authorization': oauth_header})
+#     # Pull member from LDAP
+#     uid = str(session['userinfo'].get('preferred_username', ''))
+#     member = _LDAP.get_member(uid, uid=True)
+#     member.twittername = resp.json()[0]['screen_name']
+#     return render_template('callback.html')
+#
 
-    resp = requests.post(_TWITCH_TOKEN_URI %
-                         (APP.config['TWITCH_CLIENT_ID'], APP.config['TWITCH_CLIENT_SECRET'],
-                          request.args.get('code')),
-                          headers={'Accept':'application/json'})
-
-    header = {'Authorization' : 'OAuth ' + resp.json()['access_token'], }
-    resp = requests.get('https://id.twitch.tv/oauth2/validate', headers=header)
-
-
-    # Pull member from LDAP
-    uid = str(session['userinfo'].get('preferred_username', ''))
-    member = _LDAP.get_member(uid, uid=True)
-
-    member.twitchlogin = resp.json()['login']
-    return render_template('callback.html')
-
-
-@APP.route('/twitch', methods=['DELETE'])
-@_AUTH.oidc_auth('default')
-def _revoke_twitch():
-    """ Clear's a member's twitch login in LDAP."""
-    uid = str(session['userinfo'].get('preferred_username', ''))
-    member = _LDAP.get_member(uid, uid=True)
-    member.twitchlogin = None
-    return jsonify(success=True)
-
-
-@APP.route('/twitter', methods=['GET'])
-@_AUTH.oidc_auth('default')
-def _auth_twitter():
-    # Make a POST request to get the request token
-    oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = int(time.time())
-    oauth_parameter_string = f'oauth_callback={urllib.parse.quote("https://eac.csh.rit.edu/twitter/return", safe="")}' \
-                             f'&oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
-                             f'&oauth_nonce={oauth_nonce}' \
-                             f'&oauth_signature_method=HMAC-SHA1' \
-                             f'&oauth_timestamp={oauth_timestamp}' \
-                             f'&oauth_version=1.0'
-    oauth_signature_base_string = 'POST&' \
-            + urllib.parse.quote(_TWITTER_REQUEST_TOKEN_URI, safe='') + '&' \
-            + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&'
-    oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
-                                                oauth_signature_base_string.encode(),
-                                                sha1).digest()).decode('UTF-8')
-
-    oauth_header = f'OAuth oauth_callback="https://eac.csh.rit.edu/twitter/return"' \
-                   f'oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
-                   f'oauth_nonce="{oauth_nonce}", ' \
-                   f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
-                   f'oauth_signature_method="HMAC-SHA1", ' \
-                   f'oauth_timestamp="{oauth_timestamp}", ' \
-                   f'oauth_version="1.0"'
-
-    resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
-                         headers={'Accept': '*/*',
-                                  'Authorization': oauth_header})
-    if resp.status_code != 200:
-        print(f'Status: {resp.status_code}\nMessage: {resp.text}')
-        return 'Error fetching request_token', 500
-    returned_params = dict((key.strip(), val.strip())
-                           for key, val in (element.split('=')
-                                            for element in resp.text.split('&')))
-
-    _TWITTER_AUTH_TOKEN_CACHE[returned_params['oauth_token']] = returned_params['oauth_token_secret']
-    # Redirect to twitter for authorisation
-    return redirect(f'{_TWITTER_AUTHORIZATION_URI}?oauth_token={returned_params["oauth_token"]}')
-
-
-@APP.route('/twitter/return', methods=['GET'])
-@_AUTH.oidc_auth('default')
-def _twitter_landing(): # pylint: disable=inconsistent-return-statements
-    oauth_token = request.args.get('oauth_token')
-    oauth_verifier = request.args.get('oauth_verifier')
-    oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = int(time.time())
-    oauth_parameter_string = f'oauth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
-                             f'&oauth_nonce={oauth_nonce}' \
-                             f'&oauth_signature_method=HMAC-SHA1'- \
-                             f'&oauth_timestamp={oauth_timestamp}' \
-                             f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
-                             f'&oauth_verifier={urllib.parse.quote(oauth_verifier, safe="")}' \
-                             f'&oauth_version=1.0'
-    oauth_signature_base_string = 'POST&' \
-            + urllib.parse.quote(_TWITTER_ACCESS_TOKEN_URI, safe='') + '&' \
-            + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f'{APP.config["TWITTER_CONSUMER_SECRET_KEY"]}&{_TWITTER_AUTH_TOKEN_CACHE[oauth_token]}'
-    oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
-                                                oauth_signature_base_string.encode(),
-                                                sha1).digest()).decode('UTF-8')
-
-    oauth_header = f'OAuth oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
-                   f'oauth_nonce="{oauth_nonce}", ' \
-                   f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
-                   f'oauth_signature_method="HMAC-SHA1", ' \
-                   f'oauth_timestamp="{oauth_timestamp}", ' \
-                   f'oauth_token="{oauth_token}"' \
-                   f'oauth_version="1.0"'
-    resp = requests.post(_TWITTER_REQUEST_TOKEN_URI,
-                         data=f'oauth_verifier={oauth_verifier}',
-                         headers={'Accept': '*/*',
-                                  'Authorization': oauth_header,
-                                  'Content-Type': 'application/x-www-form-urlencoded'})
-    returned_params = dict((key.strip(), val.strip())
-                           for key, val in (element.split('=')
-                                            for element in resp.text.split('&')))
-    oauth_token = returned_params['oauth_token']
-    oauth_token_secret = returned_params['oauth_token_secret']
-    # OK, now that we have the proper token and secret, we can get the user's information
-    oauth_nonce = ''.join([random.choice(string.ascii_letters + string.digits) for n in range(32)])
-    oauth_timestamp = int(time.time())
-    oauth_parameter_string = f'auth_consumer_key={APP.config["TWITTER_CONSUMER_KEY"]}' \
-                             f'&oauth_nonce={oauth_nonce}' \
-                             f'&oauth_signature_method=HMAC-SHA1' \
-                             f'&oauth_timestamp={oauth_timestamp}' \
-                             f'&oauth_token={urllib.parse.quote(oauth_token, safe="")}' \
-                             f'&oauth_version=1.0'
-    oauth_signature_base_string = 'POST&' \
-                                  + urllib.parse.quote(_TWITTER_ACCOUNT_INFO_URI, safe='') + '&' \
-                                  + urllib.parse.quote(oauth_parameter_string, safe='')
-    oauth_signing_key = f"{APP.config['TWITTER_CONSUMER_SECRET_KEY']}&{oauth_token_secret}"
-    oauth_signature = base64.b64encode(hmac.new(oauth_signing_key.encode(),
-                                                oauth_signature_base_string.encode(),
-                                                sha1).digest()).decode('UTF-8')
-
-    oauth_header = f'OAuth oauth_consumer_key="{APP.config["TWITTER_CONSUMER_KEY"]}", ' \
-                   f'oauth_nonce="{oauth_nonce}", ' \
-                   f'oauth_signature="{urllib.parse.quote(oauth_signature, safe="")}", ' \
-                   f'oauth_signature_method="HMAC-SHA1", ' \
-                   f'oauth_timestamp="{oauth_timestamp}", ' \
-                   f'oauth_token="{oauth_token}"' \
-                   f'oauth_version="1.0"'
-    resp = requests.get(_TWITTER_ACCOUNT_INFO_URI,
-                        headers={'Accept': '*/*',
-                                 'Authorization': oauth_header})
-    # Pull member from LDAP
-    uid = str(session['userinfo'].get('preferred_username', ''))
-    member = _LDAP.get_member(uid, uid=True)
-    member.twittername = resp.json()[0]['screen_name']
-    return render_template('callback.html')
-
-
-@APP.route('/twitter', methods=['DELETE'])
-@_AUTH.oidc_auth('default')
-def _revoke_twitter():
-    """ Clear's a member's twitter login in LDAP."""
-    uid = str(session['userinfo'].get('preferred_username', ''))
-    member = _LDAP.get_member(uid, uid=True)
-    member.twittername = None
-    return jsonify(success=True)
-
-
-@APP.route('/logout')
-@_AUTH.oidc_logout
-def logout():
-    return redirect('/', 302)
+# @APP.route('/twitter', methods=['DELETE'])
+# @_AUTH.oidc_auth('default')
+# def _revoke_twitter():
+#     """ Clear's a member's twitter login in LDAP."""
+#     uid = str(session['userinfo'].get('preferred_username', ''))
+#     member = _LDAP.get_member(uid, uid=True)
+#     member.twittername = None
+#     return jsonify(success=True)
+#
+#
+# @APP.route('/logout')
+# @_AUTH.oidc_logout
+# def logout():
+#     return redirect('/', 302)
