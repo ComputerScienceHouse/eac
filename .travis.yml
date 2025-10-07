@@ -1,7 +1,0 @@
-language: python
-python:
-  - "3.13"
-script:
-  - "pylint --load-plugins pylint_quotes eac"
-notifications:
-  email: false

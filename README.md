@@ -35,3 +35,16 @@ pip3 install -r requirements.txt
 
 flask run -h localhost -p 5000
  ```
+
+### Linting
+ ```
+# Install types
+mypy --install-types
+
+# Check linting
+mypy app.py config.env.py eac
+# Check Typing
+pylint app.py config.env.py eac
+# Format
+yapf -ir app.py config.env.py eac
+ ```

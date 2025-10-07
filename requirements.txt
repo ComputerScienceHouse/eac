@@ -2,9 +2,11 @@ csh-ldap @ git+https://github.com/ComputerScienceHouse/csh_ldap@2.5.0
 Flask==3.1.2
 Flask-pyoidc==3.14.3
 gunicorn==23.0.0
+mypy==1.18.1
 pylint==3.3.8
 pylint-quotes==0.2.3
 requests==2.32.5
 sentry-sdk[flask]==2.37.1
 PyJWT==2.10.1
 cryptography==46.0.2
+yapf==0.43.0
