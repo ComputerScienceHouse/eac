@@ -44,7 +44,6 @@ TWITTER_CONSUMER_SECRET_KEY = os.environ.get(
 TWITTER_TOKEN = os.environ.get('TWITTER_OAUTH_TOKEN', '')
 TWITTER_TOKEN_SECRET = os.environ.get('TWITTER_OAUTH_TOKEN_SECRET', '')
 
-
 # Common secrets
 STATE = os.environ.get('STATE', 'auth')
 
