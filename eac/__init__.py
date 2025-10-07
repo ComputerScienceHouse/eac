@@ -200,9 +200,8 @@ def _github_landing() -> tuple[str, int]:
     _link_github(github_username, github_id, member)
     return render_template('callback.html'), 200
 
-def _get_github_jwt():
-    with open('eac-private-key.pem', 'rb') as pem_file:
-        signing_key = pem_file.read()
+def _get_github_jwt() -> str:
+    signing_key = APP.config["GITHUB_APP_PRIVATE_KEY"]
 
     payload = {
         'iat': int(time.time()),
@@ -214,7 +213,7 @@ def _get_github_jwt():
 
     return encoded_jwt
 
-def _auth_github_org():
+def _auth_github_org() -> str:
     jwt_auth = _get_github_jwt()
 
     headers = {
