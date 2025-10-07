@@ -211,7 +211,7 @@ def _get_github_jwt():
 
     return encoded_jwt
 
-def _auth_github():
+def _auth_github_org():
     jwt_auth = _get_github_jwt()
 
     headers = {
@@ -248,7 +248,7 @@ def _link_github(github_username, github_id, member):
     :param github_id: the user's github id
     :param member: the member's LDAP object
     """
-    org_token = _auth_github()
+    org_token = _auth_github_org()
 
     payload={
         'org': 'ComputerScienceHouse',
@@ -267,7 +267,8 @@ def _link_github(github_username, github_id, member):
     except HTTPError as e:
         print('response:', resp.json())
         raise e
-    # member.github = github_username
+
+    member.github = github_username
 
 
 @APP.route('/github', methods=['DELETE'])
@@ -278,6 +279,20 @@ def _revoke_github():
     member = _LDAP.get_member(uid, uid=True)
     requests.delete('https://api.github.com/orgs/ComputerScienceHouse/members/' + member.github, headers=_ORG_HEADER)
     member.github = None
+    org_token = _auth_github_org()
+
+    headers = {
+        'Accept' : 'application/vnd.github.v3+json',
+        'Authorization': 'Token %s' % org_token,
+    }
+
+    resp = requests.delete('https://api.github.com/orgs/ComputerScienceHouse/members/' + member['github'], headers=headers)
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+
     return jsonify(success=True)
 
 
