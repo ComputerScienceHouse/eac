@@ -9,6 +9,9 @@ import urllib.parse
 import hmac
 from hashlib import sha1
 import base64
+import jwt
+
+from requests.models import HTTPError
 
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
 from flask_pyoidc.flask_pyoidc import OIDCAuthentication
@@ -147,8 +150,7 @@ def _revoke_slack():
 @_AUTH.oidc_auth('default')
 def _auth_github():
     # Redirect to github for authorisation
-    return redirect(_GITHUB_AUTH_URI %
-                    (APP.config['GITHUB_CLIENT_ID'], APP.config['STATE']))
+    return redirect(_GITHUB_AUTH_URI % (APP.config['GITHUB_CLIENT_ID'], APP.config['STATE']))
 
 
 @APP.route('/github/return', methods=['GET'])
@@ -192,21 +194,74 @@ def _github_landing(): # pylint: disable=inconsistent-return-statements
     # member = _LDAP.get_member(uid, uid=True)
     member = {}
 
-    _link_github(github_username, github_id, member, header)
+    _link_github(github_username, github_id, member)
     return render_template('callback.html')
 
+def _get_github_jwt():
+    with open('eac-private-key.pem', 'rb') as pem_file:
+        signing_key = pem_file.read()
 
-def _link_github(github_username, github_id, member, header):
+    payload = {
+        'iat': int(time.time()),
+        'exp': int(time.time() + 600),
+        'iss': APP.config['GITHUB_APP_ID'],
+    }
+
+    encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
+
+    return encoded_jwt
+
+def _auth_github():
+    jwt_auth = _get_github_jwt()
+
+    headers = {
+        'Accept' : 'application/vnd.github.v3+json',
+        'Authorization': 'Bearer %s' % jwt_auth,
+    }
+
+    org_installation_resp = requests.get('https://api.github.com/orgs/ComputerScienceHouse/installation', headers=headers)
+    try:
+        org_installation_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', org_installation_resp.json())
+        raise e
+
+    org_installation_json = org_installation_resp.json()
+    org_installation_id = org_installation_json['id']
+
+    org_token_resp = requests.post('https://api.github.com/app/installations/%s/access_tokens' % org_installation_id, headers=headers)
+    try:
+        org_token_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', org_token_resp.json())
+        raise e
+
+    org_token_json = org_token_resp.json()
+    org_token = org_token_json['token']
+
+    return org_token
+
+def _link_github(github_username, github_id, member):
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github_username: the user's github username
     :param github_id: the user's github id
     :param member: the member's LDAP object
     """
+    org_token = _auth_github()
+
     payload={
-        'invitee_id': github_id
+        'org': 'ComputerScienceHouse',
+        'invitee_id': github_id,
+        'role': 'direct_member'
     }
-    resp = requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=header, data=payload)
+
+    github_org_headers = {
+        'Accept' : 'application/vnd.github.v3+json',
+        'Authorization': 'Token %s' % org_token,
+    }
+
+    resp = requests.post('https://api.github.com/orgs/ComputerScienceHouse/invitations', headers=github_org_headers, json=payload)
     try:
         resp.raise_for_status()
     except HTTPError as e:

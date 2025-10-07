@@ -39,6 +39,9 @@ TWITTER_CONSUMER_KEY = os.environ.get('TWITTER_OAUTH_CONSUMER_KEY', '')
 TWITTER_CONSUMER_SECRET_KEY = os.environ.get('TWITTER_OAUTH_CONSUMER_SECRET_KEY', '')
 TWITTER_TOKEN = os.environ.get('TWITTER_OAUTH_TOKEN', '')
 TWITTER_TOKEN_SECRET = os.environ.get('TWITTER_OAUTH_TOKEN_SECRET', '')
+GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID', '')
+GITHUB_APP_SECRET = os.environ.get('GITHUB_APP_SECRET', '')
+
 
 # Common secrets
 STATE = os.environ.get('STATE', 'auth')
