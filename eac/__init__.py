@@ -11,6 +11,9 @@ from hashlib import sha1
 import base64
 from typing import Any
 
+import jwt
+from requests.models import HTTPError
+
 import flask
 import werkzeug
 from flask import Flask, request, redirect, session, render_template, send_from_directory, jsonify
@@ -51,7 +54,7 @@ _SLACK_ACCESS_URI = 'https://slack.com/api/oauth.access' \
         + '&code=%s'
 
 _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
-        + '?client_id=%s'\
+        + '?client_id=%s' \
         + '&state=%s'
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
         + '?client_id=%s' \
@@ -168,19 +171,29 @@ def _github_landing() -> tuple[str, int]:
         (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
          request.args.get('code')),
         headers={'Accept': 'application/json'},
-        timeout=APP.config['REQUEST_TIMEOUT'],
-    )
-    token = resp.json()['access_token']
+        timeout=APP.config['REQUEST_TIMEOUT'])
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+
+    resp_json = resp.json()
+    token = resp_json['access_token']
     header = {
         'Authorization': 'token ' + token,
         'Accept': 'application/vnd.github.v3+json'
     }
 
-    user_resp = requests.get(
-        'https://api.github.com/user',
-        headers=header,
-        timeout=APP.config['REQUEST_TIMEOUT'],
-    )
+    user_resp = requests.get('https://api.github.com/user',
+                             headers=header,
+                             timeout=APP.config['REQUEST_TIMEOUT'])
+    try:
+        user_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', user_resp.json())
+        raise e
+
     user_resp_json = user_resp.json()
 
     github_username = user_resp_json['login']
@@ -194,6 +207,57 @@ def _github_landing() -> tuple[str, int]:
     return render_template('callback.html'), 200
 
 
+def _get_github_jwt() -> str:
+    signing_key = APP.config["GITHUB_APP_PRIVATE_KEY"]
+
+    payload = {
+        'iat': int(time.time()),
+        'exp': int(time.time() + 600),
+        'iss': APP.config['GITHUB_APP_ID'],
+    }
+
+    encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
+
+    return encoded_jwt
+
+
+def _auth_github_org() -> str:
+    jwt_auth = _get_github_jwt()
+
+    headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'Bearer {jwt_auth}',
+    }
+
+    org_installation_resp = requests.get(
+        'https://api.github.com/orgs/ComputerScienceHouse/installation',
+        headers=headers,
+        timeout=APP.config['REQUEST_TIMEOUT'])
+    try:
+        org_installation_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', org_installation_resp.json())
+        raise e
+
+    org_installation_json = org_installation_resp.json()
+    org_installation_id = org_installation_json['id']
+
+    org_token_resp = requests.post(
+        f'https://api.github.com/app/installations/{org_installation_id}/access_tokens',
+        headers=headers,
+        timeout=APP.config['REQUEST_TIMEOUT'])
+    try:
+        org_token_resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', org_token_resp.json())
+        raise e
+
+    org_token_json = org_token_resp.json()
+    org_token = org_token_json['token']
+
+    return org_token
+
+
 def _link_github(github_username: str, github_id: str, member: Any) -> None:
     """
     Puts a member's github into LDAP and adds them to the org.
@@ -201,13 +265,30 @@ def _link_github(github_username: str, github_id: str, member: Any) -> None:
     :param github_id: the user's github id
     :param member: the member's LDAP object
     """
-    payload = {'invitee_id': github_id}
-    requests.post(
+    org_token = _auth_github_org()
+
+    payload = {
+        'org': 'ComputerScienceHouse',
+        'invitee_id': github_id,
+        'role': 'direct_member'
+    }
+
+    github_org_headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'Token {org_token}',
+    }
+
+    resp = requests.post(
         'https://api.github.com/orgs/ComputerScienceHouse/invitations',
-        headers=_ORG_HEADER,
-        data=payload,
-        timeout=APP.config['REQUEST_TIMEOUT'],
-    )
+        headers=github_org_headers,
+        json=payload,
+        timeout=APP.config['REQUEST_TIMEOUT'])
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+
     member.github = github_username
 
 
@@ -217,12 +298,27 @@ def _revoke_github() -> werkzeug.Response:
     """ Clear's a member's github in LDAP and removes them from the org. """
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
-    requests.delete(
+
+    org_token = _auth_github_org()
+
+    headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'Token {org_token}',
+    }
+
+    resp = requests.delete(
         'https://api.github.com/orgs/ComputerScienceHouse/members/' +
         member.github,
-        headers=_ORG_HEADER,
+        headers=headers,
         timeout=APP.config['REQUEST_TIMEOUT'],
     )
+
+    try:
+        resp.raise_for_status()
+    except HTTPError as e:
+        print('response:', resp.json())
+        raise e
+
     member.github = None
     return jsonify(success=True)
 

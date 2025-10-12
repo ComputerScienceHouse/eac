@@ -30,7 +30,8 @@ SLACK_SECRET = os.environ.get('SLACK_SECRET', '')
 # GitHub secrets
 GITHUB_CLIENT_ID = os.environ.get('GITHUB_ID', '')
 GITHUB_SECRET = os.environ.get('GITHUB_SECRET', '')
-ORG_TOKEN = os.environ.get('GITHUB_ORG_TOKEN', '')
+GITHUB_APP_ID = os.environ.get('GITHUB_APP_ID', '')
+GITHUB_APP_PRIVATE_KEY = os.environ.get('GITHUB_APP_PRIVATE_KEY', '')
 
 # Twitch secrets
 TWITCH_CLIENT_ID = os.environ.get('TWITCH_CLIENT_ID', '')

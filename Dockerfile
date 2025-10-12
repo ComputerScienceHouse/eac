@@ -22,4 +22,7 @@ ARG PORT=8080
 ENV PORT=${PORT}
 EXPOSE ${PORT}
 
-CMD ["sh", "-c", "gunicorn app:application --bind=0.0.0.0:${PORT} --access-logfile=- --timeout=600"]
+# --access-logfile - prints access log to stdout
+# --error-log - prints errors to stdout
+# --capture-output logging and print go to error log (stdout)
+CMD ["sh", "-c", "gunicorn app:application --bind=0.0.0.0:${PORT} --access-logfile - --error-log - --capture-output --timeout=600"]
