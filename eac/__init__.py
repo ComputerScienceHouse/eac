@@ -79,10 +79,6 @@ _TWITTER_AUTHORIZATION_URI = 'https://api.twitter.com/oauth/authenticate'
 _TWITTER_ACCESS_TOKEN_URI = 'https://api.twitter.com/oauth/access_token'
 _TWITTER_ACCOUNT_INFO_URI = 'https://api.twitter.com/1.1/account/verify_credentials.json'
 _TWITTER_AUTH_TOKEN_CACHE = {}
-_ORG_HEADER = {
-    'Authorization': 'token ' + APP.config['ORG_TOKEN'],
-    'Accept': 'application/vnd.github.v3+json'
-}
 
 
 @APP.route('/static/<path:path>', methods=['GET'])
