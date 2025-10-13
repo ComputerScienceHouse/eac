@@ -149,8 +149,9 @@ def _revoke_slack() -> werkzeug.Response:
 @_AUTH.oidc_auth('default')
 def _auth_github() -> werkzeug.Response:
     # Redirect to github for authorisation
-    return redirect(_GITHUB_AUTH_URI %
-                    (APP.config['GITHUB_CLIENT_ID'], APP.config['STATE']))
+    return redirect(
+        _GITHUB_AUTH_URI %
+        (APP.config['GITHUB_OAUTH_CLIENT_ID'], APP.config['STATE']))
 
 
 @APP.route('/github/return', methods=['GET'])
@@ -164,8 +165,8 @@ def _github_landing() -> tuple[str, int]:
     # Get token from github
     resp = requests.post(
         _GITHUB_TOKEN_URI %
-        (APP.config['GITHUB_CLIENT_ID'], APP.config['GITHUB_SECRET'],
-         request.args.get('code')),
+        (APP.config['GITHUB_OAUTH_CLIENT_ID'],
+         APP.config['GITHUB_OAUTH_CLIENT_SECRET'], request.args.get('code')),
         headers={'Accept': 'application/json'},
         timeout=APP.config['REQUEST_TIMEOUT'])
     try:
@@ -209,7 +210,7 @@ def _get_github_jwt() -> str:
     payload = {
         'iat': int(time.time()),
         'exp': int(time.time() + 600),
-        'iss': APP.config['GITHUB_APP_ID'],
+        'iss': APP.config['GITHUB_APP_CLIENT_ID'],
     }
 
     encoded_jwt = jwt.encode(payload, signing_key, algorithm='RS256')
