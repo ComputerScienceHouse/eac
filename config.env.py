@@ -11,6 +11,8 @@ SECRET_KEY = os.environ.get('SESSION_KEY',
 # OpenID Connect SSO config
 OIDC_ISSUER = os.environ.get('OIDC_ISSUER',
                              'https://sso.csh.rit.edu/auth/realms/csh')
+
+OIDC_REDIRECT_URI = os.environ.get('OIDC_REDIRECT_URI', 'https://eac.csh.rit.edu/redirect_uri')
 OIDC_CLIENT_CONFIG = {
     'client_id': os.environ.get('OIDC_CLIENT_ID', ''),
     'client_secret': os.environ.get('OIDC_CLIENT_SECRET', ''),
