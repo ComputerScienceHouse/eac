@@ -153,7 +153,8 @@ def _auth_github() -> werkzeug.Response:
     # Redirect to github for authorisation
     return redirect(
         _GITHUB_AUTH_URI %
-        (APP.config['GITHUB_APP_CLIENT_ID'], APP.config['STATE'], urllib.parse.quote(APP.config['GITHUB_REDIRECT_URI'], safe='')))
+        (APP.config['GITHUB_APP_CLIENT_ID'], APP.config['STATE'],
+         urllib.parse.quote(APP.config['GITHUB_REDIRECT_URI'], safe='')))
 
 
 @APP.route('/github/return', methods=['GET'])
@@ -167,8 +168,8 @@ def _github_landing() -> tuple[str, int]:
     # Get token from github
     resp = requests.post(
         _GITHUB_TOKEN_URI %
-        (APP.config['GITHUB_APP_CLIENT_ID'], APP.config['GITHUB_APP_CLIENT_SECRET'],
-         request.args.get('code')),
+        (APP.config['GITHUB_APP_CLIENT_ID'],
+         APP.config['GITHUB_APP_CLIENT_SECRET'], request.args.get('code')),
         headers={'Accept': 'application/json'},
         timeout=APP.config['REQUEST_TIMEOUT'])
     try:
@@ -262,7 +263,8 @@ def _auth_github_org() -> str:
     return org_token
 
 
-def _link_github(github_username: str, github_id: str, member: Any, user_token: str) -> None:
+def _link_github(github_username: str, github_id: str, member: Any,
+                 user_token: str) -> None:
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github_username: the user's github username
@@ -301,8 +303,8 @@ def _link_github(github_username: str, github_id: str, member: Any, user_token: 
     requests.patch(
         'https://api.github.com/user/memberships/orgs/ComputerScienceHouse',
         headers=github_user_headers,
-        json={'state': 'active'}
-    )
+        json={'state': 'active'},
+        timeout=APP.config['REQUEST_TIMEOUT'])
 
     member.github = github_username
 
@@ -325,7 +327,8 @@ def _revoke_github() -> werkzeug.Response:
     }
 
     resp = requests.delete(
-        'https://api.github.com/orgs/ComputerScienceHouse/members/' + github_id,
+        'https://api.github.com/orgs/ComputerScienceHouse/members/' +
+        github_id,
         headers=headers,
         timeout=APP.config['REQUEST_TIMEOUT'],
     )

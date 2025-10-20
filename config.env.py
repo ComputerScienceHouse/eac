@@ -12,7 +12,8 @@ SECRET_KEY = os.environ.get('SESSION_KEY',
 OIDC_ISSUER = os.environ.get('OIDC_ISSUER',
                              'https://sso.csh.rit.edu/auth/realms/csh')
 
-OIDC_REDIRECT_URI = os.environ.get('OIDC_REDIRECT_URI', 'https://eac.csh.rit.edu/redirect_uri')
+OIDC_REDIRECT_URI = os.environ.get('OIDC_REDIRECT_URI',
+                                   'https://eac.csh.rit.edu/redirect_uri')
 OIDC_CLIENT_CONFIG = {
     'client_id': os.environ.get('OIDC_CLIENT_ID', ''),
     'client_secret': os.environ.get('OIDC_CLIENT_SECRET', ''),
@@ -30,7 +31,8 @@ SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID', '')
 SLACK_SECRET = os.environ.get('SLACK_SECRET', '')
 
 # GitHub secrets
-GITHUB_REDIRECT_URI = os.environ.get('GITHUB_REDIRECT_URI', 'https://eac.csh.rit.edu/github/return')
+GITHUB_REDIRECT_URI = os.environ.get('GITHUB_REDIRECT_URI',
+                                     'https://eac.csh.rit.edu/github/return')
 GITHUB_APP_CLIENT_ID = os.environ.get('GITHUB_APP_CLIENT_ID', '')
 GITHUB_APP_CLIENT_SECRET = os.environ.get('GITHUB_APP_CLIENT_SECRET', '')
 GITHUB_APP_PRIVATE_KEY = os.environ.get('GITHUB_APP_PRIVATE_KEY', '')
