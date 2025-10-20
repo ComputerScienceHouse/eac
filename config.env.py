@@ -30,9 +30,9 @@ SLACK_CLIENT_ID = os.environ.get('SLACK_CLIENT_ID', '')
 SLACK_SECRET = os.environ.get('SLACK_SECRET', '')
 
 # GitHub secrets
-GITHUB_OAUTH_CLIENT_ID = os.environ.get('GITHUB_OAUTH_CLIENT_ID', '')
-GITHUB_OAUTH_CLIENT_SECRET = os.environ.get('GITHUB_OAUTH_CLIENT_SECRET', '')
+GITHUB_REDIRECT_URI = os.environ.get('GITHUB_REDIRECT_URI', 'https://eac.csh.rit.edu/github/return')
 GITHUB_APP_CLIENT_ID = os.environ.get('GITHUB_APP_CLIENT_ID', '')
+GITHUB_APP_CLIENT_SECRET = os.environ.get('GITHUB_APP_CLIENT_ID', '')
 GITHUB_APP_PRIVATE_KEY = os.environ.get('GITHUB_APP_PRIVATE_KEY', '')
 
 # Twitch secrets

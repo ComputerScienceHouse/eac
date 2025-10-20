@@ -55,7 +55,9 @@ _SLACK_ACCESS_URI = 'https://slack.com/api/oauth.access' \
 
 _GITHUB_AUTH_URI = 'https://github.com/login/oauth/authorize' \
         + '?client_id=%s' \
-        + '&state=%s'
+        + '&state=%s' \
+        + '&redirect_uri=%s'
+
 _GITHUB_TOKEN_URI = 'https://github.com/login/oauth/access_token' \
         + '?client_id=%s' \
         + '&client_secret=%s' \
@@ -151,7 +153,7 @@ def _auth_github() -> werkzeug.Response:
     # Redirect to github for authorisation
     return redirect(
         _GITHUB_AUTH_URI %
-        (APP.config['GITHUB_OAUTH_CLIENT_ID'], APP.config['STATE']))
+        (APP.config['GITHUB_APP_CLIENT_ID'], APP.config['STATE'], urllib.parse.quote(APP.config['GITHUB_REDIRECT_URI'], safe='')))
 
 
 @APP.route('/github/return', methods=['GET'])
@@ -165,8 +167,8 @@ def _github_landing() -> tuple[str, int]:
     # Get token from github
     resp = requests.post(
         _GITHUB_TOKEN_URI %
-        (APP.config['GITHUB_OAUTH_CLIENT_ID'],
-         APP.config['GITHUB_OAUTH_CLIENT_SECRET'], request.args.get('code')),
+        (APP.config['GITHUB_APP_CLIENT_ID'], APP.config['GITHUB_APP_CLIENT_SECRET'],
+         request.args.get('code')),
         headers={'Accept': 'application/json'},
         timeout=APP.config['REQUEST_TIMEOUT'])
     try:
@@ -176,9 +178,9 @@ def _github_landing() -> tuple[str, int]:
         raise e
 
     resp_json = resp.json()
-    token = resp_json['access_token']
+    user_token = resp_json['access_token']
     header = {
-        'Authorization': 'token ' + token,
+        'Authorization': 'Bearer ' + user_token,
         'Accept': 'application/vnd.github.v3+json'
     }
 
@@ -200,7 +202,7 @@ def _github_landing() -> tuple[str, int]:
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
 
-    _link_github(github_username, github_id, member)
+    _link_github(github_username, github_id, member, user_token)
     return render_template('callback.html'), 200
 
 
@@ -255,7 +257,7 @@ def _auth_github_org() -> str:
     return org_token
 
 
-def _link_github(github_username: str, github_id: str, member: Any) -> None:
+def _link_github(github_username: str, github_id: str, member: Any, user_token: str) -> None:
     """
     Puts a member's github into LDAP and adds them to the org.
     :param github_username: the user's github username
@@ -285,6 +287,17 @@ def _link_github(github_username: str, github_id: str, member: Any) -> None:
     except HTTPError as e:
         print('response:', resp.json())
         raise e
+
+    github_user_headers = {
+        'Accept': 'application/vnd.github.v3+json',
+        'Authorization': f'Token {user_token}',
+    }
+
+    requests.patch(
+        'https://api.github.com/user/memberships/orgs/ComputerScienceHouse',
+        headers=github_user_headers,
+        json={'state': 'active'}
+    )
 
     member.github = github_username
 
