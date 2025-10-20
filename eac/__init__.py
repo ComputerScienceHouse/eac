@@ -314,6 +314,9 @@ def _revoke_github() -> werkzeug.Response:
     uid = str(session['userinfo'].get('preferred_username', ''))
     member = _LDAP.get_member(uid, uid=True)
 
+    github_id = member.github
+    member.github = None
+
     org_token = _auth_github_org()
 
     headers = {
@@ -322,8 +325,7 @@ def _revoke_github() -> werkzeug.Response:
     }
 
     resp = requests.delete(
-        'https://api.github.com/orgs/ComputerScienceHouse/members/' +
-        member.github,
+        'https://api.github.com/orgs/ComputerScienceHouse/members/' + github_id,
         headers=headers,
         timeout=APP.config['REQUEST_TIMEOUT'],
     )
@@ -334,7 +336,6 @@ def _revoke_github() -> werkzeug.Response:
         print('response:', resp.json())
         raise e
 
-    member.github = None
     return jsonify(success=True)
 
 
