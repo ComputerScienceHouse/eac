@@ -178,7 +178,12 @@ def _github_landing() -> tuple[str, int]:
         raise e
 
     resp_json = resp.json()
-    user_token = resp_json['access_token']
+    try:
+        user_token = resp_json['access_token']
+    except KeyError as e:
+        print('error: ', e, resp_json)
+        raise e
+
     header = {
         'Authorization': 'Bearer ' + user_token,
         'Accept': 'application/vnd.github.v3+json'
