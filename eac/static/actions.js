@@ -4,7 +4,7 @@
 
     for (const control of controls) {
         const serviceName = control.dataset.service;
-        const endpoint = window.location + serviceName;
+        const endpoint = serviceName;
         const unlink = control.dataset.action === "unlink";
 
         control.addEventListener('click', () => {
