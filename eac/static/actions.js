@@ -45,21 +45,21 @@ window.addEventListener('load', () => {
                 const popup = window.open(endpoint, serviceName, "height=800,width=600");
                 const timer = setInterval(() => {
                     if (popup.closed) {
-                        clearInterval(timer)
+                        clearInterval(timer);
 
-                        reload()
+                        reload();
                     }
                     try {
                         if (popup.location.pathname == '/status') {
-                            clearInterval(timer)
+                            clearInterval(timer);
 
-                            const query = new URLSearchParams(popup.location.search)
-                            popup.close()
+                            const query = new URLSearchParams(popup.location.search);
+                            popup.close();
 
-                            const statusTitle = query.get('status-title')
-                            const status = query.get('status')
+                            const statusTitle = query.get('status-title');
+                            const status = query.get('status');
 
-                            showModal(statusTitle, status)
+                            showModal(statusTitle, status);
                         }
                     } catch {
                         // do this because every time you try and access the location of a window with a different origin it errors
