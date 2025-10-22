@@ -9,7 +9,7 @@ import urllib.parse
 import hmac
 from hashlib import sha1
 import base64
-from typing import Any
+from typing import Any, Union
 
 import jwt
 from requests.models import HTTPError
@@ -110,8 +110,9 @@ def _index() -> str:
 
 @APP.route('/status')
 @_AUTH.oidc_auth('default')
-def _status() -> werkzeug.Response:
+def _status() -> tuple[str, int]:
     return render_template('callback.html'), 200
+
 
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth('default')
@@ -164,7 +165,7 @@ def _auth_github() -> werkzeug.Response:
 
 @APP.route('/github/return', methods=['GET'])
 @_AUTH.oidc_auth('default')
-def _github_landing() -> tuple[str, int]:
+def _github_landing() -> Union[werkzeug.Response, tuple[str, int]]:
     # Determine if we have a valid reason to do things
     state = request.args.get('state')
     if state != APP.config['STATE']:
@@ -214,7 +215,13 @@ def _github_landing() -> tuple[str, int]:
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github_username, github_id, member, user_token)
-    return redirect('/status?status-title=Success&status=YIPPEE')
+    status_title = 'Linked Github!'
+    status = f'Added {github_username} to CSH Github org, you do not have to accept the email invite'
+
+    status_title_encoded = urllib.parse.quote(status_title, safe='')
+    status_encoded = urllib.parse.quote(status, safe='')
+    return redirect(
+        f'/status?status-title={status_title_encoded}&status={status_encoded}')
 
 
 def _get_github_jwt() -> str:
