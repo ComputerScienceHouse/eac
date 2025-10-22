@@ -20,6 +20,7 @@ function showModal(statusTitle, status) {
 
 window.addEventListener('load', () => {
     const controls = document.querySelectorAll("button[data-service]");
+    const reload = () => window.location.reload();
 
     for (const control of controls) {
         const serviceName = control.dataset.service;
@@ -41,16 +42,20 @@ window.addEventListener('load', () => {
             } else {
                 const popup = window.open(endpoint, serviceName, "height=800,width=600");
                 const timer = setInterval(() => {
-                    if (popup.location.pathname == '/status') {
-                        clearInterval(timer)
+                    try {
+                        if (popup.location.pathname == '/status') {
+                            clearInterval(timer)
 
-                        const query = new URLSearchParams(popup.location.search)
-                        popup.close()
+                            const query = new URLSearchParams(popup.location.search)
+                            popup.close()
 
-                        const statusTitle = query.get('status-title')
-                        const status = query.get('status')
+                            const statusTitle = query.get('status-title')
+                            const status = query.get('status')
 
-                        showModal(statusTitle, status)
+                            showModal(statusTitle, status)
+                        }
+                    } catch {
+                        // do this because every time you try and access the location of a window with a different origin it errors
                     }
                 }, 500);
             }
