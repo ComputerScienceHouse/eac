@@ -11,7 +11,9 @@ function showModal(statusTitle, status) {
     const modalBody = modalEl.querySelector('.modal-body')
     modalBody.append(status)
 
-    modalEl.addEventListener('hidden.bs.modal', window.location.reload)
+    $("#statusModal").on("hidden.bs.modal", () => {
+        window.location.reload()
+    })
 
     modal.show()
 
@@ -42,6 +44,11 @@ window.addEventListener('load', () => {
             } else {
                 const popup = window.open(endpoint, serviceName, "height=800,width=600");
                 const timer = setInterval(() => {
+                    if (popup.closed) {
+                        clearInterval(timer)
+
+                        reload()
+                    }
                     try {
                         if (popup.location.pathname == '/status') {
                             clearInterval(timer)
