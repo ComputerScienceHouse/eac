@@ -1,5 +1,24 @@
-(function () {
-    const reload = () => window.location.reload();
+function showModal(statusTitle, status) {
+    const modalEl = document.querySelector('#statusModal')
+    const modal = new bootstrap.Modal(modalEl)
+
+    const modalCloseBtn = modalEl.querySelector('#statusCloseButton')
+    modalCloseBtn.addEventListener('click', () => modal.hide())
+
+    const modalTitle = modalEl.querySelector('.modal-title')
+    modalTitle.append(statusTitle)
+
+    const modalBody = modalEl.querySelector('.modal-body')
+    modalBody.append(status)
+
+    modalEl.addEventListener('hidden.bs.modal', window.location.reload)
+
+    modal.show()
+
+    return modal;
+}
+
+window.addEventListener('load', () => {
     const controls = document.querySelectorAll("button[data-service]");
 
     for (const control of controls) {
@@ -22,12 +41,19 @@
             } else {
                 const popup = window.open(endpoint, serviceName, "height=800,width=600");
                 const timer = setInterval(() => {
-                    if (popup.closed) {
-                        clearInterval(timer);
-                        reload();
+                    if (popup.location.pathname == '/status') {
+                        clearInterval(timer)
+
+                        const query = new URLSearchParams(popup.location.search)
+                        popup.close()
+
+                        const statusTitle = query.get('status-title')
+                        const status = query.get('status')
+
+                        showModal(statusTitle, status)
                     }
                 }, 500);
             }
         });
     }
-}());
+});

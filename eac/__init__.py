@@ -108,6 +108,11 @@ def _index() -> str:
                            services=services)
 
 
+@APP.route('/status')
+@_AUTH.oidc_auth('default')
+def _status() -> werkzeug.Response:
+    return render_template('callback.html'), 200
+
 @APP.route('/slack', methods=['GET'])
 @_AUTH.oidc_auth('default')
 def _auth_slack() -> werkzeug.Response:
@@ -209,7 +214,7 @@ def _github_landing() -> tuple[str, int]:
     member = _LDAP.get_member(uid, uid=True)
 
     _link_github(github_username, github_id, member, user_token)
-    return render_template('callback.html'), 200
+    return redirect('/status?status-title=Success&status=YIPPEE')
 
 
 def _get_github_jwt() -> str:
